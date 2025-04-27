@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Hybrid Shop{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Login to Your Account</h4>
+            </div>
+            <div class="card-body">
+                <form id="login-form">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" required>
+                        <div class="mt-1">
+                            <a href="#" id="forgot-password-link">Şifremi Unuttum</a>
+                        </div>
+                    </div>
+                    <div class="alert alert-danger d-none" id="login-error"></div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </form>
+                <hr>
+                <p>Don't have an account? <a href="/register">Register</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Şifremi Unuttum</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="forgot-password-form">
+                    <div class="mb-3">
+                        <label for="forgot-email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="forgot-email" required>
+                        <small class="text-muted">Şifre sıfırlama bağlantısı bu adrese gönderilecektir.</small>
+                    </div>
+                    <div class="alert alert-danger d-none" id="forgot-password-error"></div>
+                    <div class="alert alert-success d-none" id="forgot-password-success"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="send-reset-link-btn">Sıfırlama Bağlantısı Gönder</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/login.js') }}"></script>
+{% endblock %} 

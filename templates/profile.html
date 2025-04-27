@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Hybrid Shop{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Your Profile</h4>
+            </div>
+            <div class="card-body">
+                <div id="profile-loading" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div id="profile-content" class="d-none">
+                    <h5 id="profile-name"></h5>
+                    <p class="text-muted" id="profile-email"></p>
+                    <p><strong>Account Type:</strong> <span id="profile-type"></span></p>
+                    <p><strong>Joined:</strong> <span id="profile-joined"></span></p>
+                    
+                    <button class="btn btn-outline-primary mt-3" id="edit-profile-btn">
+                        Edit Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Your Orders</h4>
+            </div>
+            <div class="card-body">
+                <div id="orders-loading" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div id="orders-empty" class="d-none">
+                    <div class="alert alert-info">
+                        You haven't placed any orders yet. <a href="/products">Browse products</a> to shop.
+                    </div>
+                </div>
+                <div id="orders-content" class="d-none">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Date</th>
+                                    <th>Items</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orders-table-body">
+                                <!-- Orders will be inserted here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-profile-form">
+                    <div class="mb-3">
+                        <label for="edit-name" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="edit-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="edit-email" required readonly>
+                        <small class="text-muted">Email cannot be changed.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-password" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="edit-password">
+                        <small class="text-muted">Leave blank if you don't want to change it.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-confirm-password" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="edit-confirm-password">
+                    </div>
+                    <div class="alert alert-danger d-none" id="edit-profile-error"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-profile-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Order Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="order-details-loading" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div id="order-details-content" class="d-none">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>Order Information</h6>
+                            <p><strong>Order ID:</strong> <span id="order-id"></span></p>
+                            <p><strong>Date:</strong> <span id="order-date"></span></p>
+                            <p><strong>Status:</strong> <span id="order-status"></span></p>
+                            <p><strong>Total:</strong> <span id="order-total"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Shipping Address</h6>
+                            <p id="order-address"></p>
+                        </div>
+                    </div>
+                    <h6>Order Items</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="order-items-body">
+                                <!-- Order items will be inserted here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+{% endblock %} 

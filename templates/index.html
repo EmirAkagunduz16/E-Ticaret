@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Hybrid Shop{% endblock %}
+
+{% block content %}
+<div class="jumbotron bg-light p-5 rounded">
+    <h1 class="display-4">Welcome to Hybrid Shop</h1>
+    <p class="lead">Discover amazing products from our suppliers.</p>
+    <hr class="my-4">
+    <p>Browse our latest products below or check out our full catalog.</p>
+    <a class="btn btn-primary btn-lg" href="/products" role="button">Browse Products</a>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <h2>Featured Products</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row" id="featured-products">
+    <div class="col-12 text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+{% endblock %} 

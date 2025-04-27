@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siparişiniz Alındı</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .content {
+            padding: 20px 0;
+        }
+        .order-details {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .order-items {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .order-items th, .order-items td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+        .order-items th {
+            background-color: #f5f5f5;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px 0;
+            font-size: 12px;
+            color: #777;
+            border-top: 1px solid #eee;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .total {
+            font-weight: bold;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Siparişiniz Alındı</h1>
+    </div>
+    <div class="content">
+        <p>Merhaba {{ user_name }},</p>
+        <p>Siparişiniz başarıyla alındı ve işleme konuldu. Siparişinizin detayları aşağıda yer almaktadır:</p>
+        
+        <div class="order-details">
+            <p><strong>Sipariş Numarası:</strong> {{ order_id }}</p>
+            <p><strong>Sipariş Tarihi:</strong> {{ order_date }}</p>
+            <p><strong>Ödeme Yöntemi:</strong> {{ payment_method }}</p>
+        </div>
+        
+        <h3>Sipariş Edilen Ürünler</h3>
+        <table class="order-items">
+            <thead>
+                <tr>
+                    <th>Ürün</th>
+                    <th>Adet</th>
+                    <th>Fiyat</th>
+                    <th>Toplam</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order_items %}
+                <tr>
+                    <td>{{ item.product_name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.price }} ₺</td>
+                    <td>{{ item.subtotal }} ₺</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td colspan="3" class="total">Toplam:</td>
+                    <td class="total">{{ order_total }} ₺</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <p style="text-align: center;">
+            <a href="{{ app_url }}/profile" class="button">Siparişlerinizi Görüntüle</a>
+        </p>
+        
+        <p>Siparişinizle ilgili herhangi bir sorunuz varsa, lütfen bizimle iletişime geçmekten çekinmeyin.</p>
+        <p>Bizi tercih ettiğiniz için teşekkür ederiz!</p>
+    </div>
+    <div class="footer">
+        <p>Bu e-posta, Hybrid Shop tarafından gönderilmiştir.</p>
+        <p>© 2023 Hybrid Shop. Tüm hakları saklıdır.</p>
+    </div>
+</body>
+</html> 

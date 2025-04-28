@@ -6,7 +6,18 @@ from flask import current_app
 from datetime import datetime, timedelta
 import jwt
 from flask import render_template
-from ..config.settings import Config
+try:
+    from config.settings import Config
+except ImportError:
+    try:
+        # Try relative import for when running as a module
+        from ..config.settings import Config
+    except ImportError:
+        # Fallback for when running directly
+        import sys
+        import os.path as path
+        sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+        from config.settings import Config
 
 def hash_password(password):
     """Şifreyi bcrypt kullanarak hashle"""

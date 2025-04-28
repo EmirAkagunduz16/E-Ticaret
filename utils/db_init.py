@@ -1,5 +1,5 @@
-from ..config.mysql_db import get_mysql_connection
-from ..config.mongodb_db import get_db
+from config.mysql_db import get_mysql_connection
+from config.mongodb_db import get_db
 
 def init_tables():
     """Veritabanı tablolarını başlat"""

@@ -1,4 +1,4 @@
-from .helpers import generate_token, send_email
+from .utils.helpers import generate_token, send_email
 
 __all__ = ['generate_token', 'send_email']
 

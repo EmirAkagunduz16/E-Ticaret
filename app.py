@@ -3,7 +3,7 @@ from flask_jwt_extended import JWTManager
 from flask_mail import Mail
 from flask_cors import CORS
 import sys
-from config.settings import Config
+from .config.settings import Config
 
 # Uzantıları başlat
 jwt = JWTManager()
@@ -22,22 +22,22 @@ def create_app(config_class=Config):
     mail.init_app(app)
     
     # MongoDB zaten modülünde başlatıldı
-    from config.mongodb_db import init_mongodb
+    from .config.mongodb_db import init_mongodb
     # MongoDB'nin başlatılmasını sağla
     if not init_mongodb():
         print("MongoDB bağlantısı başlatılamadı")
         sys.exit(1)
     
     # Veritabanı tablolarını başlat
-    from utils.db_init import init_tables
+    from .utils.db_init import init_tables
     init_tables()
     
     # API yönlendiricilerini içe aktar ve kaydet
-    from routes.auth import auth_bp
-    from routes.profile import profile_bp
-    from routes.products import products_bp
-    from routes.cart import cart_bp
-    from routes.dev import dev_bp
+    from .routes.auth import auth_bp
+    from .routes.profile import profile_bp
+    from .routes.products import products_bp
+    from .routes.cart import cart_bp
+    from .routes.dev import dev_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(profile_bp, url_prefix='/api')
@@ -46,7 +46,7 @@ def create_app(config_class=Config):
     app.register_blueprint(dev_bp, url_prefix='')
     
     # Hata işleyicilerini kaydet
-    from utils.error_handlers import register_error_handlers
+    from .utils.error_handlers import register_error_handlers
     register_error_handlers(app)
     
     # Ön uç yönlendiricileri

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, jsonify
-from config.settings import Config
+from ..config.settings import Config
 
 dev_bp = Blueprint('dev', __name__)
 

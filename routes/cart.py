@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
-from config.mongodb_db import get_db
-from models.user import User
-from utils.helpers import send_email
-from decorators.auth import customer_required
+from ..config.mongodb_db import get_db
+from ..models.user import User
+from ..utils.helpers import send_email
+from ..decorators.auth import customer_required
 from datetime import datetime
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from bson import ObjectId
@@ -113,7 +113,7 @@ def add_to_cart():
                 if 'last_name' in user and user['last_name']:
                     user_name += f" {user['last_name']}"
                 
-                from config.settings import Config
+                from ..config.settings import Config
                 
                 # E-posta kullanım şablonu kullanma
                 send_email(
@@ -201,7 +201,7 @@ def checkout_cart():
             if 'last_name' in user and user['last_name']:
                 user_name += f" {user['last_name']}"
             
-            from config.settings import Config
+            from ..config.settings import Config
             
             # Sipariş tarihini biçimlendir
             formatted_date = order_date.strftime('%d.%m.%Y %H:%M')

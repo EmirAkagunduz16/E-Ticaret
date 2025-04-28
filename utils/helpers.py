@@ -6,7 +6,7 @@ from flask import current_app
 from datetime import datetime, timedelta
 import jwt
 from flask import render_template
-from config.settings import Config
+from ..config.settings import Config
 
 def hash_password(password):
     """Şifreyi bcrypt kullanarak hashle"""

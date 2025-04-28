@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token
-from config.mongodb_db import get_db
-from models.user import User
-from utils.helpers import send_email
-from config.settings import Config
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from ..config.mongodb_db import get_db
+from ..models.user import User
+from ..utils.helpers import send_email
+from ..config.settings import Config
 from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__)

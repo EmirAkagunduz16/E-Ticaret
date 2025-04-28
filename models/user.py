@@ -1,6 +1,6 @@
-from config.mysql_db import get_mysql_connection
+from ..config.mysql_db import get_mysql_connection
 from datetime import datetime, timedelta
-from utils.helpers import generate_reset_token, hash_password, check_password
+from ..utils.helpers import generate_reset_token, hash_password, check_password
 
 class User:
     @staticmethod

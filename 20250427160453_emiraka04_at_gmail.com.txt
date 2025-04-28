@@ -1,5 +1,0 @@
-Subject: Şifre Sıfırlama İstek
-To: emiraka04@gmail.com
-Content-Type: text/plain
-
-Lütfen aşağıdaki linki tıklayarak şifrenizi sıfırlayın: http://127.0.0.1:5000/reset-password?token=UV76uUMSP1mNqMftC_3qvGy2VO4fB7yB-mNMo0sjIrE

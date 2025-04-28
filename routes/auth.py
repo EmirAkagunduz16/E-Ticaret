@@ -78,25 +78,42 @@ def forgot_password():
                     # Devam etmek, MySQL'de hala token olduğu için
             
             # E-posta gönder
-            # Geliştirme için sabit URL kullan
+            # Frontend URL'ini konfigürasyondan al
             app_url = Config.APP_URL
             if app_url is None or "localhost" in app_url:
-                app_url = "http://127.0.0.1:5000"
+                app_url = "http://localhost:5000"
                 
-            # Yeni rotayı kullan
-            reset_link = f"{app_url}/password/reset?token={token}"
+            # Sıfırlama bağlantısı oluştur
+            reset_link = f"{app_url}/reset-password?token={token}"
             print(f"Reset linki oluşturuldu: {reset_link}")
             
+            # Sender email parametresini al (varsa)
+            sender_email = data.get('sender_email', None)
+            
+            # HTML şablonu kullanarak şifre sıfırlama e-postası gönder
             email_sent = send_email(
-                "Şifre Sıfırlama İstek",
+                "Şifre Sıfırlama İsteği",
                 user['email'],
-                f"Lütfen aşağıdaki linki tıklayarak şifrenizi sıfırlayın: {reset_link}"
+                f"Lütfen aşağıdaki linki tıklayarak şifrenizi sıfırlayın: {reset_link}",
+                is_html=True,
+                template="emails/password_reset.html",
+                template_data={
+                    'user_name': f"{user['first_name']} {user['last_name']}",
+                    'reset_link': reset_link,
+                    'app_url': app_url
+                },
+                sender=sender_email
             )
             
+            # send_email şimdi gerçek email gönderildiğinde True, dosyaya kaydedildiğinde False döndürür
             if email_sent:
                 return jsonify({'message': 'Şifre sıfırlama e-postası gönderildi'}), 200
             else:
-                return jsonify({'message': 'E-posta gönderilemedi, ancak token oluşturuldu'}), 200
+                # E-posta gönderilemedi ama dosyaya kaydedildi, yine de token oluşturuldu
+                return jsonify({
+                    'message': 'Şifre sıfırlama e-postası gönderilemedi ancak dosyaya kaydedildi',
+                    'info': 'Mail sunucu yapılandırmasını kontrol edin. Token oluşturuldu ve kullanılabilir.'
+                }), 200
     
     return jsonify({'message': 'E-posta bulunamadı'}), 404
 
@@ -136,4 +153,58 @@ def reset_password():
     if success:
         return jsonify({'message': 'Şifre sıfırlama başarılı'}), 200
     
-    return jsonify({'message': 'Geçersiz veya süresi dolmuş token'}), 400 
+    return jsonify({'message': 'Geçersiz veya süresi dolmuş token'}), 400
+
+# Frontend'e şifre sıfırlama sayfası sağlayan yeni bir rota
+@auth_bp.route('/password/reset', methods=['GET'])
+def password_reset_page():
+    token = request.args.get('token')
+    if not token:
+        return jsonify({'message': 'Geçersiz token'}), 400
+    
+    # Şifre sıfırlama sayfasına yönlendir
+    from flask import render_template
+    return render_template('reset-password.html', token=token)
+
+# Token doğrulama rotası
+@auth_bp.route('/verify-token', methods=['GET'])
+def verify_token():
+    token = request.args.get('token')
+    if not token:
+        return jsonify({'valid': False}), 200
+    
+    # İlk olarak MongoDB'de token'ı kontrol et
+    password_reset_tokens = get_password_reset_tokens()
+    if password_reset_tokens is not None:
+        try:
+            mongo_token = password_reset_tokens.find_one({
+                'token': token,
+                'expires': {'$gt': datetime.utcnow()}
+            })
+            
+            if mongo_token:
+                return jsonify({'valid': True}), 200
+        except Exception as e:
+            print(f"MongoDB token doğrulama hatası: {str(e)}")
+    
+    # MongoDB'de bulunamadıysa MySQL'de kontrol et
+    conn = get_mysql_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    query = """
+    SELECT * FROM users 
+    WHERE reset_token = %s AND reset_token_expires > %s
+    """
+    
+    cursor.execute(query, (token, datetime.now()))
+    user = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+    
+    return jsonify({'valid': user is not None}), 200
+
+# Update API routes with correct prefixes
+@auth_bp.route('/api/auth/verify-token', methods=['GET'])
+def api_verify_token():
+    return verify_token() 

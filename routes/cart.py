@@ -28,17 +28,8 @@ def get_products_collection():
 @customer_required
 def add_to_cart():
     try:
-        # Get JSON data
-        data = request.get_json()
-        
-        # Gerekli alanları doğrula  
-        required_fields = ['product_id', 'quantity', 'price']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'message': f'Gerekli alan eksik: {field}'}), 400
-        
-        # Mevcut kullanıcıyı al
         current_user = get_jwt_identity()
+        data = request.get_json()
         
         # Koleksiyonları al
         cart_collection = get_cart_collection()
@@ -47,66 +38,82 @@ def add_to_cart():
         if cart_collection is None or products_collection is None:
             return jsonify({'message': 'Veritabanı bağlantı hatası'}), 500
         
-        # Ürünün varlığını doğrula
-        product = products_collection.find_one({
-            '_id': ObjectId(data['product_id']),
-            'is_deleted': False
-        })
+        product_id = data.get('product_id')
+        quantity = data.get('quantity', 1)
         
+        # Ürünü kontrol et
+        product = products_collection.find_one({'_id': ObjectId(product_id)})
         if not product:
             return jsonify({'message': 'Ürün bulunamadı'}), 404
         
-        # Ürün sepette var mı kontrol et
-        existing_cart_item = cart_collection.find_one({
+        # Sepette bu ürün zaten var mı kontrol et
+        existing_item = cart_collection.find_one({
             'user_id': current_user['id'],
-            'product_id': data['product_id'],
+            'product_id': product_id,
             'is_checked_out': False
         })
         
-        if existing_cart_item:
-            # Miktarı güncelle
-            new_quantity = existing_cart_item['quantity'] + data['quantity']
+        if existing_item:
+            # Varolan öğeyi güncelle
             cart_collection.update_one(
-                {'_id': existing_cart_item['_id']},
-                {'$set': {'quantity': new_quantity}}
+                {'_id': existing_item['_id']},
+                {'$inc': {'quantity': quantity}}
             )
-            
-            return jsonify({'message': 'Sepet öğesi miktarı güncellendi'}), 200
+        else:
+            # Yeni bir sepet öğesi ekle
+            cart_item = {
+                'user_id': current_user['id'],
+                'product_id': product_id,
+                'product_name': product['name'],
+                'quantity': quantity,
+                'price': product['price'],
+                'image_url': product.get('image_url', ''),
+                'created_at': datetime.utcnow(),
+                'is_checked_out': False
+            }
+            cart_collection.insert_one(cart_item)
         
-        # Yeni öğeyi sepete ekle
-        cart_item = {
+        # Ürün bilgilerini al
+        products_with_details = []
+        updated_cart = cart_collection.find({
             'user_id': current_user['id'],
-            'product_id': data['product_id'],
-            'quantity': data['quantity'],
-            'price': float(data['price']), 
-            'added_at': datetime.utcnow(),
             'is_checked_out': False
-        }
+        })
         
-        print(f"Sepete yeni öğe ekleme: {cart_item}")
-        cart_collection.insert_one(cart_item)
+        for cart_item in updated_cart:
+            product_info = products_collection.find_one({'_id': ObjectId(cart_item['product_id'])})
+            if product_info:
+                item_details = {
+                    'product_id': str(product_info['_id']),
+                    'product_name': product_info['name'],
+                    'quantity': cart_item['quantity'],
+                    'price': product_info['price'],
+                    'image_url': product_info.get('image_url', ''),
+                    'subtotal': cart_item['quantity'] * product_info['price']
+                }
+                products_with_details.append(item_details)
         
-        # Sepet güncelleme bildirimi kullanım şablonu kullanma
+        # Sepet güncelleme e-postası gönder
         try:
+            # Kullanıcı bilgilerini al
             user = User.find_by_id(current_user['id'])
-            if user:
-                # Tüm sepet öğelerini bu kullanıcı için al
-                cart_items = list(cart_collection.find({
-                    'user_id': current_user['id'],
-                    'is_checked_out': False
-                }))
+            if not user:
+                raise Exception("Kullanıcı bulunamadı")
+            
+            # Sepet öğelerini e-posta için biçimlendir
+            formatted_items = []
+            cart_total = 0
+            
+            for item in products_with_details:
+                subtotal = item['quantity'] * item['price']
+                cart_total += subtotal
                 
-                # Sepet öğelerini e-posta için biçimlendir
-                formatted_items = []
-                for item in cart_items:
-                    product_id = item['product_id']
-                    product_info = products_collection.find_one({'_id': ObjectId(product_id)})
-                    if product_info:
-                        formatted_items.append({
-                            'product_name': product_info['name'],
-                            'quantity': item['quantity'],
-                            'price': item['price']
-                        })
+                formatted_items.append({
+                    'product_name': item['product_name'],
+                    'quantity': item['quantity'],
+                    'price': item['price'],
+                    'subtotal': subtotal
+                })
                 
                 # Kullanıcı adını al
                 user_name = user['first_name']
@@ -115,7 +122,10 @@ def add_to_cart():
                 
                 from config.settings import Config
                 
-                # E-posta kullanım şablonu kullanma
+                # Gönderici email parametresini al (varsa)
+                sender_email = data.get('sender_email', None)
+                
+                # "Sepetiniz Güncellendi" e-postası gönder
                 send_email(
                     "Sepetiniz Güncellendi",
                     user['email'],
@@ -124,8 +134,9 @@ def add_to_cart():
                     template_data={
                         'user_name': user_name,
                         'cart_items': formatted_items,
-                        'app_url': Config.APP_URL
-                    }
+                        'app_url': Config.APP_URL or "http://localhost:5000"
+                    },
+                    sender=sender_email
                 )
         except Exception as e:
             # Sadece hata logla, e-posta başarısız olursa istek başarısız olma
@@ -141,6 +152,7 @@ def add_to_cart():
 @customer_required
 def checkout_cart():
     current_user = get_jwt_identity()
+    data = request.get_json()
     
     # Koleksiyonları al
     cart_collection = get_cart_collection()
@@ -202,32 +214,34 @@ def checkout_cart():
                 user_name += f" {user['last_name']}"
             
             from config.settings import Config
+            app_url = Config.APP_URL or "http://localhost:5000"
             
-            # Sipariş tarihini biçimlendir
-            formatted_date = order_date.strftime('%d.%m.%Y %H:%M')
+            # Gönderici email parametresini al (varsa)
+            sender_email = data.get('sender_email', None)
             
-            # E-posta kullanım şablonu kullanma
+            # "Siparişiniz Alındı" e-postası gönder
             send_email(
                 "Siparişiniz Alındı",
                 user['email'],
-                "Siparişiniz başarıyla alındı ve işleme konuldu.",
+                "Siparişiniz başarıyla alındı.",
                 template="emails/order_received.html",
                 template_data={
                     'user_name': user_name,
                     'order_id': order_id,
-                    'order_date': formatted_date,
-                    'payment_method': 'Kredi Kartı',  # This would be dynamic in a real system
+                    'order_date': order_date.strftime("%d.%m.%Y %H:%M"),
+                    'payment_method': 'Kredi Kartı',  # Bu bilgiyi siparişten alabilirsiniz
                     'order_items': formatted_items,
                     'order_total': order_total,
-                    'app_url': Config.APP_URL
-                }
+                    'app_url': app_url
+                },
+                sender=sender_email
             )
+            
     except Exception as e:
-        # Hata logla, sipariş onay e-postası gönderimi başarısız olursa istek başarısız olma
         print(f"Sipariş onay e-postası gönderimi hatası: {str(e)}")
     
     return jsonify({
-        'message': 'Sipariş başarıyla alındı',
+        'message': 'Sipariş başarıyla oluşturuldu',
         'order_id': order_id
     }), 200
 

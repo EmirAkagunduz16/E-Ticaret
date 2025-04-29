@@ -7,12 +7,12 @@ load_dotenv()
 
 class Config:
     # Flask Yapılandırması
-    SECRET_KEY = os.getenv('SECRET_KEY', 'default-secret-key')
+    SECRET_KEY = os.getenv('SECRET_KEY')
     DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
     SERVER_NAME = os.getenv('SERVER_NAME')
     
     # MySQL Yapılandırması
-    SQLALCHEMY_DATABASE_URI = os.getenv('MYSQL_URI', 'mysql://root:password@localhost/ecommerce')
+    SQLALCHEMY_DATABASE_URI = os.getenv('MYSQL_URI')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # JWT Yapılandırması

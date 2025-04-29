@@ -1,0 +1,4 @@
+Email: akagunduzemir0416@gmail.com
+Token: P8Mleq7jKd68vesCGaz1cxaN_JJMXwDx3obZMEJTV7o
+Reset Link: http://localhost:5000/reset-password?token=P8Mleq7jKd68vesCGaz1cxaN_JJMXwDx3obZMEJTV7o
+Expires: 2025-04-30 08:33:44.284143

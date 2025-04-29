@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from config.mongodb_db import get_db
+from config.mysql_db import get_mysql_connection
 from models.user import User
 from utils.helpers import send_email
 from config.settings import Config

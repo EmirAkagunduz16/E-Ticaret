@@ -1,0 +1,4 @@
+Email: emirakangunduz@gmail.com
+Token: 2naUXFzBRjJ1hoCASqF7wk6Tq4OZ4KdA8hdIMD_R4DM
+Reset Link: http://localhost:5000/reset-password?token=2naUXFzBRjJ1hoCASqF7wk6Tq4OZ4KdA8hdIMD_R4DM
+Expires: 2025-04-30 08:34:52.033278

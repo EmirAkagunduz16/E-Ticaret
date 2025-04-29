@@ -1,0 +1,4 @@
+Email: emirakangunduz@gmail.com
+Token: HP-FPBuF318t6pMwcyzWOfGRgcCGn1HYZIyX9uQTyyI
+Reset Link: http://localhost:5000/reset-password?token=HP-FPBuF318t6pMwcyzWOfGRgcCGn1HYZIyX9uQTyyI
+Expires: 2025-04-30 08:36:53.028292

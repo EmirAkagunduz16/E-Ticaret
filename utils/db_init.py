@@ -24,10 +24,21 @@ def init_tables():
         password VARCHAR(255) NOT NULL,
         role VARCHAR(20) NOT NULL DEFAULT 'customer',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login DATETIME NULL,
         reset_token VARCHAR(100),
         reset_token_expires DATETIME
     )
     ''')
+    
+    # last_login kolonunu eklemek için (eğer yoksa)
+    try:
+        cursor.execute('''
+        ALTER TABLE users ADD COLUMN last_login DATETIME NULL
+        ''')
+        print("last_login kolonu eklendi veya zaten vardı")
+    except Exception as e:
+        # Kolon zaten var olabilir, bu hata görmezden gelinebilir
+        print(f"Not: {str(e)}")
     
     # Orders tablosu
     cursor.execute('''

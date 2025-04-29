@@ -1,6 +1,6 @@
-Subject: Sepetiniz Güncellendi
+Subject: Şifre Sıfırlama İsteği
 To: emirakangunduz@gmail.com
-From: emirakangunduz@gmail.com
+From: emailsenderforeticaret@gmail.com
 Content-Type: text/html
 
 <!DOCTYPE html>
@@ -8,7 +8,7 @@ Content-Type: text/html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sepetiniz Güncellendi</title>
+    <title>Şifre Sıfırlama İsteği</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -37,35 +37,40 @@ Content-Type: text/html
             display: inline-block;
             padding: 10px 20px;
             background-color: #007bff;
-            color: white;
+            color: white !important;
             text-decoration: none;
             border-radius: 4px;
-            margin-top: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .message {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 20px 0;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Sepetiniz Güncellendi</h1>
+        <h1>Şifre Sıfırlama İsteği</h1>
     </div>
     <div class="content">
-        <p>Merhaba ,</p>
-        <p>Sepetinize yeni bir ürün eklediniz. Alışverişinize devam etmek veya siparişinizi tamamlamak için aşağıdaki butona tıklayabilirsiniz.</p>
-        
-        <p>Sepetinize eklenen ürünler:</p>
-        <ul>
-            
-            <li>Laptop - 4 adet - 749.99 ₺</li>
-            
-            <li>Smartwatch - 5 adet - 249.99 ₺</li>
-            
-            <li>Tablet - 1 adet - 399.99 ₺</li>
-            
-        </ul>
+        <p>Merhaba  ,</p>
+        <p>Hesabınız için şifre sıfırlama talebinde bulundunuz. Şifrenizi sıfırlamak için aşağıdaki butona tıklayın:</p>
         
         <p style="text-align: center;">
-            <a href="http://localhost:5000/cart" class="button">Sepeti Görüntüle</a>
+            <a href="http://localhost:5000/reset-password?token=Sov95OArt85lKSoraaEeafEdi22Vrs5Z_aEK3HULUaA" class="button">Şifremi Sıfırla</a>
         </p>
+        
+        <div class="message">
+            <p>Eğer bu talebi siz yapmadıysanız, lütfen bu e-postayı dikkate almayın. Hesabınızın güvenliği için endişelenmenize gerek yoktur.</p>
+        </div>
+        
+        <p>Bu bağlantı, 24 saat boyunca geçerlidir.</p>
+        
+        <p>Bağlantıya tıklayamıyor musunuz? Aşağıdaki URL'i tarayıcınıza kopyalayıp yapıştırın:</p>
+        <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px;">http://localhost:5000/reset-password?token=Sov95OArt85lKSoraaEeafEdi22Vrs5Z_aEK3HULUaA</p>
     </div>
     <div class="footer">
         <p>Bu e-posta, Hybrid Shop tarafından gönderilmiştir.</p>

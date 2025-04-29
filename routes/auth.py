@@ -5,6 +5,7 @@ from models.user import User
 from utils.helpers import send_email
 from config.settings import Config
 from datetime import datetime, timedelta
+import os
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -76,7 +77,7 @@ def forgot_password():
                         'expires': datetime.utcnow() + timedelta(hours=24)
                     })
                 except Exception as e:
-                    print(f"Error inserting token into MongoDB: {str(e)}")
+                    current_app.logger.error(f"Error inserting token into MongoDB: {str(e)}")
                     # Devam etmek, MySQL'de hala token olduğu için
             
             # E-posta gönder
@@ -87,7 +88,24 @@ def forgot_password():
                 
             # Sıfırlama bağlantısı oluştur
             reset_link = f"{app_url}/reset-password?token={token}"
-            print(f"Reset linki oluşturuldu: {reset_link}")
+            
+            # Reset linkini dosyaya kaydet
+            from utils.helpers import email_logger
+            email_logger.info(f"Reset linki oluşturuldu: {reset_link}")
+            
+            # Token ve reset link bilgisini dosyaya kaydet
+            reset_tokens_dir = os.path.join(os.getcwd(), 'sent_emails', 'tokens')
+            if not os.path.exists(reset_tokens_dir):
+                os.makedirs(reset_tokens_dir)
+                
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            token_file = os.path.join(reset_tokens_dir, f"{timestamp}_{data['email'].replace('@', '_at_')}_token.txt")
+            
+            with open(token_file, 'w', encoding='utf-8') as f:
+                f.write(f"Email: {data['email']}\n")
+                f.write(f"Token: {token}\n")
+                f.write(f"Reset Link: {reset_link}\n")
+                f.write(f"Expires: {datetime.utcnow() + timedelta(hours=24)}\n")
             
             # Sender email parametresini al (varsa)
             sender_email = data.get('sender_email', None)

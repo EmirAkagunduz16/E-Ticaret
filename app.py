@@ -3,16 +3,49 @@ from flask_jwt_extended import JWTManager
 from flask_mail import Mail
 from flask_cors import CORS
 import sys
+import os
+import logging
 from config.settings import Config
 
 # Uzantıları başlat
 jwt = JWTManager()
 mail = Mail()
 
+# Loglama yapılandırması
+def configure_logging(app):
+    # Log dizinini oluştur
+    log_dir = os.path.join(os.getcwd(), 'sent_emails', 'logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    # Uygulama logları için
+    app_log_file = os.path.join(log_dir, 'app.log')
+    
+    # Handler'ları yapılandır
+    file_handler = logging.FileHandler(app_log_file)
+    file_handler.setLevel(logging.INFO)
+    
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    
+    # Flask logger'ını yapılandır
+    app.logger.addHandler(file_handler)
+    app.logger.setLevel(logging.INFO)
+    
+    # E-posta ve diğer loglar için ana dizin
+    email_dir = os.path.join(os.getcwd(), 'sent_emails', 'messages')
+    if not os.path.exists(email_dir):
+        os.makedirs(email_dir)
+    
+    app.logger.info("Loglama sistemi yapılandırıldı")
+
 def create_app(config_class=Config):
     # Flask uygulamasını başlat
     app = Flask(__name__)
     app.config.from_object(config_class)
+    
+    # Loglama sistemini yapılandır
+    configure_logging(app)
     
     # CORS'ı yapılandır
     CORS(app) # butun domainlerden erişebilir hale getirir
@@ -21,11 +54,18 @@ def create_app(config_class=Config):
     jwt.init_app(app)
     mail.init_app(app)
     
+    # SMTP debug bilgilerini log dosyasına yönlendir
+    if app.debug:
+        app.logger.info("SMTP debug modu etkinleştirildi, tüm SMTP iletişim logları sent_emails/logs dizinine kaydedilecek")
+        # E-posta gönderim detaylarını kaydetmek için loglama düzeyini ayarla
+        logging.getLogger('mail').setLevel(logging.DEBUG)
+        logging.getLogger('mail.log').setLevel(logging.DEBUG)
+    
     # MongoDB zaten modülünde başlatıldı
     from config.mongodb_db import init_mongodb
     # MongoDB'nin başlatılmasını sağla
     if not init_mongodb():
-        print("MongoDB bağlantısı başlatılamadı")
+        app.logger.error("MongoDB bağlantısı başlatılamadı")
         sys.exit(1)
     
     # Veritabanı tablolarını başlat
@@ -78,24 +118,24 @@ def create_app(config_class=Config):
     @app.route('/reset-password/', strict_slashes=False)
     def reset_password_page():
         # Log that we reached this route - for debugging
-        print("RESET PASSWORD ROUTE ACCESSED")
+        app.logger.info("RESET PASSWORD ROUTE ACCESSED")
         
         try:
             # Get token from URL
             token = request.args.get('token', '')
-            print(f"Token received: {token}")
+            app.logger.info(f"Token received: {token}")
             
             # Render the template
             return render_template('reset-password.html')
         except Exception as e:
-            print(f"Error in reset_password_page: {str(e)}")
+            app.logger.error(f"Error in reset_password_page: {str(e)}")
             return app.send_static_file('404.html'), 404
     
     @app.route('/password/reset')
     def password_reset_page():
-        print("PASSWORD RESET ROUTE ACCESSED")
+        app.logger.info("PASSWORD RESET ROUTE ACCESSED")
         token = request.args.get('token', '')
-        print(f"Token for password reset: {token}")
+        app.logger.info(f"Token for password reset: {token}")
         return render_template('reset-password.html')
     
     # Statik dosyaları sun
@@ -119,10 +159,10 @@ def create_app(config_class=Config):
     @app.route('/test-template/<template_name>')
     def test_template(template_name):
         try:
-            print(f"Şablon testi: {template_name}")
+            app.logger.info(f"Şablon testi: {template_name}")
             return render_template(f"{template_name}.html")
         except Exception as e:
-            print(f"Şablon hatası: {template_name}: {str(e)}")
+            app.logger.error(f"Şablon hatası: {template_name}: {str(e)}")
             return jsonify({
                 'error': f"Şablon hatası: {template_name}",
                 'message': str(e)

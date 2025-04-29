@@ -115,8 +115,12 @@ class User:
             return None
         
         if check_password(password, user['password']):
-            # Başarılı girişte last_login alanını güncelle
-            User.update_last_login(user['id'])
+            try:
+                # Başarılı girişte last_login alanını güncelle
+                User.update_last_login(user['id'])
+            except Exception as e:
+                # last_login alanı henüz yoksa veya bir hata oluşursa loglayıp devam et
+                print(f"Son giriş zamanı güncellenemedi: {str(e)}")
             return user
         
         return None
@@ -124,17 +128,21 @@ class User:
     @staticmethod
     def update_last_login(user_id):
         """Kullanıcının son giriş zamanını güncelle"""
-        conn = get_mysql_connection()
-        cursor = conn.cursor()
-        
-        query = "UPDATE users SET last_login = %s WHERE id = %s"
-        cursor.execute(query, (datetime.now(), user_id))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return True
+        try:
+            conn = get_mysql_connection()
+            cursor = conn.cursor()
+            
+            query = "UPDATE users SET last_login = %s WHERE id = %s"
+            cursor.execute(query, (datetime.now(), user_id))
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return True
+        except Exception as e:
+            print(f"Son giriş güncellemesi başarısız: {str(e)}")
+            return False
     
     @staticmethod
     def create_reset_token(email):

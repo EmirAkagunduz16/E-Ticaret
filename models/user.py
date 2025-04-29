@@ -115,9 +115,26 @@ class User:
             return None
         
         if check_password(password, user['password']):
+            # Başarılı girişte last_login alanını güncelle
+            User.update_last_login(user['id'])
             return user
         
         return None
+    
+    @staticmethod
+    def update_last_login(user_id):
+        """Kullanıcının son giriş zamanını güncelle"""
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
+        
+        query = "UPDATE users SET last_login = %s WHERE id = %s"
+        cursor.execute(query, (datetime.now(), user_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return True
     
     @staticmethod
     def create_reset_token(email):

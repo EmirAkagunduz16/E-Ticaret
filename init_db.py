@@ -1,12 +1,7 @@
-import os
 from app import create_app
-from config.mysql_db import get_mysql_connection
 from config.mongodb_db import get_db
 from models.user import User
-from models.product import Product
-from models.cart import Cart
-from models.order import Order, OrderItem
-import bcrypt
+
 from datetime import datetime
 from utils.db_init import init_tables
 

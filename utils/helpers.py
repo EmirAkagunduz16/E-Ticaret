@@ -1,5 +1,4 @@
 import os
-import re
 import secrets
 import bcrypt
 from flask import current_app

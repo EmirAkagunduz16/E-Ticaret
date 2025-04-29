@@ -47,10 +47,12 @@ def login():
     user = User.verify_password(data['email'], data['password'])
     
     if user:
+        # Last_login alanı otomatik olarak User.verify_password içinde güncelleniyor
         access_token = create_access_token(identity={'id': user['id'], 'role': user['role']})
         return jsonify({
             'access_token': access_token,
-            'role': user['role']
+            'role': user['role'],
+            'last_login': user.get('last_login')
         }), 200
     
     return jsonify({'message': 'Geçersiz kimlik bilgileri'}), 401

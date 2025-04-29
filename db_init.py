@@ -24,6 +24,7 @@ def init_tables():
         password VARCHAR(255) NOT NULL,
         role VARCHAR(20) NOT NULL DEFAULT 'customer',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login DATETIME NULL,
         reset_token VARCHAR(100),
         reset_token_expires DATETIME
     )

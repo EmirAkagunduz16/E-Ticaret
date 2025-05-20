@@ -1,0 +1,16 @@
+{
+  "id": "ecommerce-env",
+  "name": "E-Commerce Test Environment",
+  "values": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "enabled": true
+    },
+    {
+      "key": "token",
+      "value": "",
+      "enabled": true
+    }
+  ]
+}

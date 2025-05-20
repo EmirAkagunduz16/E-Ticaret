@@ -1,4 +1,5 @@
 from config.mongodb_db import get_db
+from config.mysql_db import get_mysql_connection
 from bson import ObjectId
 from datetime import datetime
 
@@ -118,3 +119,106 @@ class Cart:
         })
         
         return result.deleted_count
+
+    # MySQL methods for testing
+    @staticmethod
+    def get_cart_by_user_id(user_id):
+        """Kullanıcının sepetindeki tüm ürünleri getir (MySQL)"""
+        conn = get_mysql_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        query = """
+        SELECT c.*, p.name as product_name, p.price as product_price, p.image as product_image
+        FROM cart c
+        JOIN products p ON c.product_id = p.id
+        WHERE c.user_id = %s
+        """
+        cursor.execute(query, (user_id,))
+        
+        cart_items = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        return cart_items
+    
+    @staticmethod
+    def add_to_cart(user_id, product_id, quantity):
+        """Sepete ürün ekle (MySQL)"""
+        conn = get_mysql_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Ürün sepette var mı kontrol et
+        check_query = "SELECT * FROM cart WHERE user_id = %s AND product_id = %s"
+        cursor.execute(check_query, (user_id, product_id))
+        
+        existing_item = cursor.fetchone()
+        
+        if existing_item:
+            # Ürün varsa miktarı güncelle
+            update_query = "UPDATE cart SET quantity = quantity + %s WHERE id = %s"
+            cursor.execute(update_query, (quantity, existing_item['id']))
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return {'cart_id': existing_item['id'], 'status': 'updated'}
+        else:
+            # Yeni ürün ekle
+            insert_query = "INSERT INTO cart (user_id, product_id, quantity) VALUES (%s, %s, %s)"
+            cursor.execute(insert_query, (user_id, product_id, quantity))
+            
+            cart_id = cursor.lastrowid
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return {'cart_id': cart_id, 'status': 'added'}
+    
+    @staticmethod
+    def update_cart_item(cart_id, user_id, quantity):
+        """Sepet öğesini güncelle (MySQL)"""
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
+        
+        query = "UPDATE cart SET quantity = %s WHERE id = %s AND user_id = %s"
+        cursor.execute(query, (quantity, cart_id, user_id))
+        
+        success = cursor.rowcount > 0
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return success
+    
+    @staticmethod
+    def remove_from_cart(cart_id, user_id):
+        """Sepetten ürün kaldır (MySQL)"""
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
+        
+        query = "DELETE FROM cart WHERE id = %s AND user_id = %s"
+        cursor.execute(query, (cart_id, user_id))
+        
+        success = cursor.rowcount > 0
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return success
+    
+    @staticmethod
+    def clear_cart(user_id):
+        """Kullanıcının sepetini temizle (MySQL)"""
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
+        
+        query = "DELETE FROM cart WHERE user_id = %s"
+        cursor.execute(query, (user_id,))
+        
+        success = cursor.rowcount > 0
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return success

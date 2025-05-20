@@ -6,36 +6,60 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    # Flask Konfigürasyonu
-    SECRET_KEY = os.getenv('SECRET_KEY', '1d023839bc76ee137a7de4c56aae13d8')
-    DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
-    SERVER_NAME = os.getenv('SERVER_NAME')
+    """Temel konfigürasyon"""
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'default-secret-key')
+    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+    SERVER_NAME = os.environ.get('SERVER_NAME')
     
     # JWT Konfigürasyonu
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', '415c4d0c2324ebd0a38fe728b0ca0726')
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 86400)))
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'default-jwt-secret-key')
+    JWT_ACCESS_TOKEN_EXPIRES = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 86400))
     
     # E-posta Konfigürasyonu
-    MAIL_SERVER = os.getenv('MAIL_SERVER')
-    MAIL_PORT = int(os.getenv('MAIL_PORT', 587))
-    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME')
-    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER')
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
     
     # MongoDB Konfigürasyonu
-    MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
-    MONGO_DB_NAME = os.getenv('MONGO_DB_NAME', 'ecommerce')
+    MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
+    MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', 'ecommerce')
     
     # MySQL Konfigürasyonu
-    MYSQL_HOST = os.getenv('MYSQL_HOST', 'localhost')
-    MYSQL_USER = os.getenv('MYSQL_USER', 'root')
-    MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD', 'password')
-    MYSQL_DATABASE = os.getenv('MYSQL_DATABASE', 'ecommerce')
-    MYSQL_PORT = int(os.getenv('MYSQL_PORT', 3306))
+    MYSQL_HOST = os.environ.get('MYSQL_HOST', 'localhost')
+    MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
+    MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', '')
+    MYSQL_DATABASE = os.environ.get('MYSQL_DATABASE', 'ecommerce')
+    MYSQL_PORT = int(os.environ.get('MYSQL_PORT', 3306))
     
     # Yükleme klasörü
-    UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'uploads')
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')
     
-    # Uygulama Konfigürasyonu
-    APP_URL = os.getenv('APP_URL', 'http://localhost:5000')
+    # Uygulama URL'si
+    APP_URL = os.environ.get('APP_URL', 'http://localhost:5000')
+
+class TestConfig(Config):
+    """Test konfigürasyonu"""
+    TESTING = True
+    DEBUG = True
+    SECRET_KEY = 'test-secret-key'
+    JWT_SECRET_KEY = 'test-jwt-secret-key'
+    
+    # Test için bellek içi SQLite veritabanı kullan
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    
+    # Test için gerçek e-posta gönderme
+    MAIL_SUPPRESS_SEND = True
+    
+    # Test için MongoDB kullanma - localhost'u kullan
+    MONGO_URI = 'mongodb://localhost:27017/'
+    MONGO_DB_NAME = 'ecommerce_test'
+    
+    # Test için MySQL kullanma - localhost'u kullan
+    MYSQL_HOST = 'localhost'
+    MYSQL_DATABASE = 'ecommerce_test'
+    
+    # Test için geçici yükleme klasörü
+    UPLOAD_FOLDER = 'uploads/test'

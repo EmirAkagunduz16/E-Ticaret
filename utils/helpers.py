@@ -24,7 +24,6 @@ except ImportError:
 
 # Flask-Mail'i içe aktar
 from flask_mail import Message
-from app import mail
 
 # SMTP loglarını yakalamak için özel sınıf
 class SMTPHandlerCapture:
@@ -168,7 +167,7 @@ def send_email(subject, recipient, body, is_html=False, template=None, template_
                 html=body if is_html else None,
                 sender=email_sender
             )
-            mail.send(msg)
+            current_app.extensions['mail'].send(msg)
             email_logger.info(f"Gerçek e-posta gönderildi: {recipient} (Gönderen: {email_sender})")
             return True
         except Exception as e:

@@ -23,7 +23,7 @@ def register():
     
     # Kullanıcının zaten var olup olmadığını kontrol et
     if User.find_by_email(data['email']):
-        return jsonify({'message': 'Kullanıcı zaten mevcut'}), 400
+        return jsonify({'message': 'Bu e-posta adresi zaten kullanılıyor'}), 400
     
     # Kullanıcı verilerini oluştur
     user_data = {
@@ -39,7 +39,7 @@ def register():
     user_id = User.create(user_data)
     
     if user_id:
-        return jsonify({'message': 'Kullanıcı başarıyla oluşturuldu'}), 201
+        return jsonify({'message': 'Kullanıcı başarıyla kaydedildi'}), 201
     else:
         return jsonify({'message': 'Kullanıcı oluşturma hatası'}), 500
 
@@ -52,12 +52,17 @@ def login():
         # Last_login alanı otomatik olarak User.verify_password içinde güncelleniyor
         access_token = create_access_token(identity={'id': user['id'], 'role': user['role']})
         return jsonify({
-            'access_token': access_token,
-            'role': user['role'],
-            'last_login': user.get('last_login')
+            'message': 'Giriş başarılı',
+            'token': access_token,
+            'user': {
+                'id': user['id'],
+                'username': user.get('username', ''),
+                'email': user['email'],
+                'role': user['role']
+            }
         }), 200
     
-    return jsonify({'message': 'Geçersiz kimlik bilgileri'}), 401
+    return jsonify({'message': 'Geçersiz e-posta veya şifre'}), 401
 
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
@@ -128,7 +133,7 @@ def forgot_password():
             
             # send_email şimdi gerçek email gönderildiğinde True, dosyaya kaydedildiğinde False döndürür
             if email_sent:
-                return jsonify({'message': 'Şifre sıfırlama e-postası gönderildi'}), 200
+                return jsonify({'message': 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi'}), 200
             else:
                 # E-posta gönderilemedi ama dosyaya kaydedildi, yine de token oluşturuldu
                 return jsonify({

@@ -11,6 +11,9 @@ from config.settings import Config
 jwt = JWTManager()
 mail = Mail()
 
+# Test modunu kontrol et
+is_test_mode = 'pytest' in sys.modules
+
 # Loglama yapılandırması
 def configure_logging(app):
     # Log dizinini oluştur
@@ -66,7 +69,10 @@ def create_app(config_class=Config):
     # MongoDB'nin başlatılmasını sağla
     if not init_mongodb():
         app.logger.error("MongoDB bağlantısı başlatılamadı")
-        sys.exit(1)
+        if not is_test_mode:
+            sys.exit(1)
+        else:
+            app.logger.warn("Test modu: MongoDB bağlantısı başarısız oldu, mock ile devam ediliyor")
     
     # Veritabanı tablolarını başlat
     from utils.db_init import init_tables

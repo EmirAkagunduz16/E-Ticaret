@@ -1,4 +1,5 @@
 from config.mongodb_db import get_db
+from config.mysql_db import get_mysql_connection
 from bson import ObjectId
 from datetime import datetime
 
@@ -105,3 +106,104 @@ class Product:
             return result.modified_count > 0
         except:
             return False
+
+    # MySQL methods for testing
+    @staticmethod
+    def get_all_products():
+        """Tüm ürünleri getir (MySQL)"""
+        conn = get_mysql_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        query = "SELECT * FROM products WHERE is_deleted = 0 ORDER BY created_at DESC"
+        cursor.execute(query)
+        
+        products = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        return products
+    
+    @staticmethod
+    def get_product_by_id(product_id):
+        """ID'ye göre ürün getir (MySQL)"""
+        conn = get_mysql_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        query = "SELECT * FROM products WHERE id = %s AND is_deleted = 0"
+        cursor.execute(query, (product_id,))
+        
+        product = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        return product
+    
+    @staticmethod
+    def create_product(product_data):
+        """Yeni ürün oluştur (MySQL)"""
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
+        
+        query = """
+        INSERT INTO products (name, price, description, image, category_id) 
+        VALUES (%s, %s, %s, %s, %s)
+        """
+        
+        cursor.execute(query, (
+            product_data['name'],
+            product_data['price'],
+            product_data['description'],
+            product_data['image'],
+            product_data['category_id']
+        ))
+        
+        product_id = cursor.lastrowid
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return product_id
+    
+    @staticmethod
+    def update_product(product_id, product_data):
+        """Ürün güncelle (MySQL)"""
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
+        
+        query = """
+        UPDATE products 
+        SET name = %s, price = %s, description = %s, image = %s, category_id = %s
+        WHERE id = %s
+        """
+        
+        cursor.execute(query, (
+            product_data['name'],
+            product_data['price'],
+            product_data['description'],
+            product_data['image'],
+            product_data['category_id'],
+            product_id
+        ))
+        
+        success = cursor.rowcount > 0
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return success
+    
+    @staticmethod
+    def delete_product(product_id):
+        """Ürün sil (MySQL)"""
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
+        
+        query = "UPDATE products SET is_deleted = 1 WHERE id = %s"
+        cursor.execute(query, (product_id,))
+        
+        success = cursor.rowcount > 0
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return success

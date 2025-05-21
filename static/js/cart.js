@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Load cart items
-    loadCartItems();
+    loadCartData();
     
     // Add event listener for checkout button
     document.getElementById('checkout-btn').addEventListener('click', function() {
@@ -20,115 +20,80 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Function to load cart items
-function loadCartItems() {
+// Function to load cart data
+function loadCartData() {
     const token = localStorage.getItem('token');
-    const cartLoading = document.getElementById('cart-loading');
-    const cartEmpty = document.getElementById('cart-empty');
-    const cartItems = document.getElementById('cart-items');
     
+    if (!token || token === 'undefined') {
+        // Redirect to login if not logged in
+        window.location.href = '/login?redirect=/cart';
+        return;
+    }
+    
+    // Show loading indicator
+    document.getElementById('cart-loading').classList.remove('d-none');
+    document.getElementById('cart-empty').classList.add('d-none');
+    document.getElementById('cart-content').classList.add('d-none');
+    
+    // Get cart data from API
     axios.get('/api/cart', {
         headers: {
             'Authorization': 'Bearer ' + token
         }
     })
     .then(function(response) {
-        // Hide loading spinner
-        cartLoading.classList.add('d-none');
+        // Hide loading indicator
+        document.getElementById('cart-loading').classList.add('d-none');
         
-        const items = response.data.items;
+        const cartItems = response.data.cart_items;
         
-        if (items.length === 0) {
+        if (cartItems && cartItems.length > 0) {
+            // Show cart content
+            document.getElementById('cart-content').classList.remove('d-none');
+            
+            // Display cart items
+            displayCartItems(cartItems);
+        } else {
             // Show empty cart message
-            cartEmpty.classList.remove('d-none');
+            document.getElementById('cart-empty').classList.remove('d-none');
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading cart data:', error);
+        
+        // Handle expired token or authentication errors
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            alert('Your session has expired. Please log in again.');
+            window.location.href = '/login?redirect=/cart';
             return;
         }
         
-        // Show cart items
-        cartItems.classList.remove('d-none');
+        // Hide loading indicator and show error message
+        document.getElementById('cart-loading').classList.add('d-none');
         
-        // Clear cart items body
-        const cartItemsBody = document.getElementById('cart-items-body');
-        cartItemsBody.innerHTML = '';
-        
-        // Calculate total
-        let subtotal = 0;
-        
-        // Add cart items to table
-        items.forEach(function(item) {
-            const row = document.createElement('tr');
-            
-            const itemSubtotal = item.price * item.quantity;
-            subtotal += itemSubtotal;
-            
-            row.innerHTML = `
-                <td>${item.product_name}</td>
-                <td>${formatPrice(item.price)}</td>
-                <td>
-                    <div class="input-group input-group-sm" style="max-width: 120px;">
-                        <button class="btn btn-outline-secondary btn-decrease" data-id="${item._id}">-</button>
-                        <input type="number" class="form-control text-center" value="${item.quantity}" min="1" readonly>
-                        <button class="btn btn-outline-secondary btn-increase" data-id="${item._id}">+</button>
-                    </div>
-                </td>
-                <td>${formatPrice(itemSubtotal)}</td>
-                <td>
-                    <button class="btn btn-sm btn-danger btn-remove" data-id="${item._id}">
-                        <i class="bi bi-trash"></i> Remove
-                    </button>
-                </td>
-            `;
-            
-            // Add event listeners for quantity changes
-            const decreaseBtn = row.querySelector('.btn-decrease');
-            const increaseBtn = row.querySelector('.btn-increase');
-            const removeBtn = row.querySelector('.btn-remove');
-            
-            decreaseBtn.addEventListener('click', function() {
-                updateCartItemQuantity(item._id, item.quantity - 1);
-            });
-            
-            increaseBtn.addEventListener('click', function() {
-                updateCartItemQuantity(item._id, item.quantity + 1);
-            });
-            
-            removeBtn.addEventListener('click', function() {
-                removeCartItem(item._id);
-            });
-            
-            cartItemsBody.appendChild(row);
-        });
-        
-        // Calculate and display totals
-        const shipping = subtotal > 0 ? 5.00 : 0;
-        const total = subtotal + shipping;
-        
-        document.getElementById('cart-subtotal').textContent = formatPrice(subtotal);
-        document.getElementById('cart-shipping').textContent = formatPrice(shipping);
-        document.getElementById('cart-total').textContent = formatPrice(total);
-    })
-    .catch(function(error) {
-        console.error('Error loading cart items:', error);
-        cartLoading.classList.add('d-none');
-        
-        // Show error message
         const errorAlert = document.createElement('div');
         errorAlert.className = 'alert alert-danger';
-        errorAlert.textContent = 'Error loading cart items. Please try again later.';
+        errorAlert.textContent = 'Error loading cart data. Please try again later.';
         
-        document.getElementById('cart-container').appendChild(errorAlert);
+        document.getElementById('cart-container').prepend(errorAlert);
     });
 }
 
 // Function to update cart item quantity
 function updateCartItemQuantity(itemId, quantity) {
-    if (quantity < 1) {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+        // Redirect to login if not logged in
+        window.location.href = '/login?redirect=/cart';
         return;
     }
     
-    const token = localStorage.getItem('token');
-    
-    axios.put(`/api/cart/update/${itemId}`, {
+    // Update cart item quantity in API
+    axios.put('/api/cart/update', {
+        item_id: itemId,
         quantity: quantity
     }, {
         headers: {
@@ -136,30 +101,66 @@ function updateCartItemQuantity(itemId, quantity) {
         }
     })
     .then(function(response) {
-        loadCartItems();
+        // Reload cart data
+        loadCartData();
+        
+        // Update cart count
         fetchCartCount();
     })
     .catch(function(error) {
-        console.error('Error updating cart item:', error);
-        alert('Failed to update cart item. Please try again.');
+        console.error('Error updating cart item quantity:', error);
+        
+        // Handle expired token or authentication errors
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            alert('Your session has expired. Please log in again.');
+            window.location.href = '/login?redirect=/cart';
+            return;
+        }
+        
+        alert('Failed to update cart item quantity. Please try again.');
     });
 }
 
-// Function to remove cart item
+// Function to remove item from cart
 function removeCartItem(itemId) {
     const token = localStorage.getItem('token');
     
-    axios.delete(`/api/cart/remove/${itemId}`, {
+    if (!token) {
+        // Redirect to login if not logged in
+        window.location.href = '/login?redirect=/cart';
+        return;
+    }
+    
+    // Remove cart item in API
+    axios.delete('/api/cart/remove', {
         headers: {
             'Authorization': 'Bearer ' + token
+        },
+        data: {
+            item_id: itemId
         }
     })
     .then(function(response) {
-        loadCartItems();
+        // Reload cart data
+        loadCartData();
+        
+        // Update cart count
         fetchCartCount();
     })
     .catch(function(error) {
         console.error('Error removing cart item:', error);
+        
+        // Handle expired token or authentication errors
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            alert('Your session has expired. Please log in again.');
+            window.location.href = '/login?redirect=/cart';
+            return;
+        }
+        
         alert('Failed to remove cart item. Please try again.');
     });
 }

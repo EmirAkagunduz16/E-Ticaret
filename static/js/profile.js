@@ -27,6 +27,11 @@ function loadProfileData() {
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user'));
     
+    if (!token || token === 'undefined') {
+        window.location.href = '/login?redirect=/profile';
+        return;
+    }
+    
     if (user) {
         // Show profile data from localStorage (quick display before API call)
         displayProfileData(user);
@@ -49,6 +54,15 @@ function loadProfileData() {
     })
     .catch(function(error) {
         console.error('Error loading profile data:', error);
+        
+        // Handle expired token or authentication errors
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            alert('Your session has expired. Please log in again.');
+            window.location.href = '/login?redirect=/profile';
+            return;
+        }
         
         // If API call fails, at least show data from localStorage
         if (user) {

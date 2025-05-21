@@ -226,7 +226,7 @@ function formatPrice(price) {
 function addToCart(productId, price) {
     const token = localStorage.getItem('token');
     
-    if (!token) {
+    if (!token || token === 'undefined') {
         window.location.href = '/login?redirect=/products';
         return;
     }
@@ -247,6 +247,16 @@ function addToCart(productId, price) {
     })
     .catch(function(error) {
         console.error('Error adding to cart:', error);
+        
+        // Handle expired token or authentication errors
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            alert('Your session has expired. Please log in again.');
+            window.location.href = '/login?redirect=/products';
+            return;
+        }
+        
         alert('Failed to add product to cart. Please try again.');
     });
 }

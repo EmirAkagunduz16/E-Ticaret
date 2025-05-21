@@ -44,8 +44,8 @@ class TestConfig(Config):
     """Test konfigürasyonu"""
     TESTING = True
     DEBUG = True
-    SECRET_KEY = 'test-secret-key'
-    JWT_SECRET_KEY = 'test-jwt-secret-key'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
     
     # Test için bellek içi SQLite veritabanı kullan
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'

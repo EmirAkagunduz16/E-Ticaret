@@ -5,6 +5,9 @@ from flask_cors import CORS
 import sys
 import os
 import logging
+from datetime import timedelta
+# Replace the relative path with absolute path to project root
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from config.settings import Config
 
 # Uzantıları başlat
@@ -47,11 +50,19 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     
+    # Test modunda SERVER_NAME'i ayarla
+    if is_test_mode or 'FLASK_TEST_PORT' in os.environ:
+        app.config['SERVER_NAME'] = f"localhost:{os.environ.get('FLASK_TEST_PORT', '5000')}"
+        app.config['APPLICATION_ROOT'] = '/'
+    
     # Loglama sistemini yapılandır
     configure_logging(app)
     
     # CORS'ı yapılandır
     CORS(app) # butun domainlerden erişebilir hale getirir
+    
+    # JWT yapılandırması
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)  # 7 günlük token süresi
     
     # Uzantıları uygulamayla başlat
     jwt.init_app(app)

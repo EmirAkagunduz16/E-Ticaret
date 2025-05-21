@@ -21,55 +21,11 @@ make test
 make run
 ```
 
-### Alternatif Çalıştırma (Make Olmadan)
-Make komutu olmayan sistemlerde `run.sh` script'i kullanılabilir:
-```bash
-# Script'i çalıştırılabilir yap
-chmod +x run.sh
-
-# Projeyi kurmak için
-./run.sh setup
-
-# .env dosyasını oluşturmak için
-cp env.example .env
-# .env dosyasını düzenleyin
-
-# Veritabanını başlatmak için
-./run.sh init-db
-
-# Testleri çalıştırmak için
-./run.sh test
-
-# Uygulamayı çalıştırmak için
-./run.sh run
-```
-
-### Docker ile Çalıştırma
-Docker ve Docker Compose ile projeyi çalıştırmak için:
-```bash
-# .env dosyasını oluşturmak için
-cp env.example .env
-# .env dosyasındaki Docker yorumlarını etkinleştirin
-
-# Uygulamayı başlatmak için
-docker-compose up -d
-
-# Testleri çalıştırmak için
-docker-compose run test
-
-# Uygulamayı durdurmak için
-docker-compose down
-```
 
 ### Tüm Komutlar
 Makefile ile kullanılabilecek tüm komutları görmek için:
 ```bash
 make help
-```
-
-veya shell script ile:
-```bash
-./run.sh
 ```
 
 ## E-posta Yapılandırması
@@ -133,7 +89,6 @@ Uygulama kapsamlı test altyapısı içerir:
 - **Entegrasyon Testleri**: API endpoint'leri için testler
 - **UI Testleri**: Selenium ile otomatik arayüz testleri
 - **Performans Testleri**: Locust ile DoS dayanıklılık testleri
-- **API Testleri**: Postman koleksiyonu ile API testleri
 
 ### Test Çalıştırma
 Testleri çalıştırmak için:
@@ -148,6 +103,64 @@ make test-selenium # Sadece UI testleri çalıştırır
 Testleri çalıştırmak için gerekli paketleri yükleyin:
 ```
 make install
+```
+
+## UI Testleri için Selenium Kurulumu
+
+Selenium UI testlerini çalıştırmak için aşağıdaki adımları izleyin:
+
+### Firefox ile Kullanım (Önerilen)
+
+1. Python bağımlılıklarını yükleyin:
+   ```
+   pip install -r test-requirements.txt
+   pip install webdriver-manager selenium
+   ```
+
+2. GeckoDriver'ı yükleyin:
+   ```bash
+   # Debian/Ubuntu sistemlerde:
+   sudo apt-get install firefox-geckodriver
+   # Veya webdriver-manager ile:
+   python -c "from webdriver_manager.firefox import GeckoDriverManager; print(GeckoDriverManager().install())"
+   ```
+
+3. Testleri çalıştırın:
+   ```
+   python -m pytest tests/selenium/test_ui.py
+   ```
+
+### Chromium ile Kullanım
+
+1. Chromium tarayıcısını yükleyin (eğer zaten kurulu değilse):
+   ```
+   sudo apt-get install chromium
+   ```
+
+2. Python bağımlılıklarını yükleyin:
+   ```
+   pip install -r test-requirements.txt
+   pip install webdriver-manager selenium
+   ```
+
+3. ChromeDriver'ı manuel olarak ayarlamak için:
+   ```python
+   from webdriver_manager.chrome import ChromeDriverManager
+   from webdriver_manager.core.utils import ChromeType
+   
+   # Chromium için ChromeDriver'ı indir
+   driver_path = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
+   print(f"ChromeDriver yüklendi: {driver_path}")
+   ```
+
+4. Testleri çalıştırın:
+   ```
+   python run_tests.py
+   ```
+
+Eğer ChromeDriver hataları alıyorsanız, şu komutla ChromeDriver'ı manuel olarak yüklemeyi deneyebilirsiniz:
+```
+CHROMEDRIVER_PATH=$(which chromium) python -c "from webdriver_manager.chrome import ChromeDriverManager; from webdriver_manager.core.utils import ChromeType; print(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())"
 ```
 
 ``` 

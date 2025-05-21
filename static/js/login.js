@@ -54,12 +54,16 @@ function login() {
         password: password
     })
     .then(function(response) {
-        // Store token and user info
-        localStorage.setItem('token', response.data.access_token);
+        console.log('Login response:', response.data);
         
-        // Store user role
+        // Store token and user info - use the correct property name from response
+        const token = response.data.access_token || response.data.token;
+        localStorage.setItem('token', token);
+        
+        // Store user role and other info
         const userInfo = {
-            role: response.data.role
+            role: response.data.role || (response.data.user && response.data.user.role) || 'customer',
+            id: response.data.user && response.data.user.id
         };
         localStorage.setItem('user', JSON.stringify(userInfo));
         

@@ -14,6 +14,13 @@ def supplier_required(fn):
 
             # Check for test environment with test-jwt-token
             auth_header = request.headers.get('Authorization', '')
+            
+            # Check for undefined token
+            if auth_header and auth_header.startswith('Bearer '):
+                token = auth_header.split(' ')[1]
+                if token == 'undefined' or not token:
+                    return jsonify({'message': 'Geçersiz token değeri'}), 401
+            
             is_test = auth_header and 'test-jwt-token' in auth_header
             
             # Special handling for tests
@@ -68,6 +75,14 @@ def customer_required(fn):
                 return jsonify({
                     'message': 'Kimlik doğrulama gerekli',
                     'error': 'Eksik veya geçersiz Authorization başlığı'
+                }), 401
+                
+            # Bearer token'ı ayıkla ve 'undefined' kontrolü yap
+            token = auth_header.split(' ')[1]
+            if token == 'undefined' or not token:
+                return jsonify({
+                    'message': 'Geçersiz token',
+                    'error': 'Token değeri geçersiz'
                 }), 401
                 
             # JWT'yi manuel olarak doğrula

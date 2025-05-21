@@ -76,12 +76,21 @@ def init_mongodb():
         return True
     
     try:
-        mongo_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
-        db_name = os.getenv('MONGO_DB_NAME', 'ecommerce')
+        # Always use localhost for MongoDB in test mode, selenium tests, or if MONGO_URI is not set
+        if is_test_mode or 'FLASK_TEST_PORT' in os.environ or 'MONGO_URI' not in os.environ:
+            mongo_uri = 'mongodb://localhost:27017/'
+        else:
+            mongo_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
+        
+        # Always use a test database in test mode or selenium tests
+        if is_test_mode or 'FLASK_TEST_PORT' in os.environ:
+            db_name = 'ecommerce_test'
+        else:
+            db_name = os.getenv('MONGO_DB_NAME', 'ecommerce')
         
         print(f"MongoDB'ye bağlanılıyor: {mongo_uri}, Veritabanı: {db_name}")
         
-        mongo_client = MongoClient(mongo_uri)
+        mongo_client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)  # Reduced timeout for faster failure
         mongo_db = mongo_client[db_name]
         
         # Bağlantıyı test et
@@ -91,8 +100,8 @@ def init_mongodb():
     except Exception as e:
         print(f"MongoDB bağlantı hatası: {str(e)}")
         
-        # If connection fails in test mode, use mock database
-        if is_test_mode:
+        # If connection fails in test mode or selenium tests, use mock database
+        if is_test_mode or 'FLASK_TEST_PORT' in os.environ:
             print("Test modu: Mock MongoDB'ye geri dönülüyor")
             mongo_db = MockDatabase()
             return True
@@ -111,5 +120,5 @@ def get_db():
         
     return mongo_db
 
-# Modül import edildiğinde MongoDB'yi başlat
-init_mongodb()
+# Don't auto-initialize when importing the module
+# init_mongodb() will be called by get_db() when needed

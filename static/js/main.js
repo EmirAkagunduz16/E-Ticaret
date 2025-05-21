@@ -37,7 +37,7 @@ function fetchCartCount() {
     
     // Make the request regardless of token - the backend will handle anonymous users
     axios.get('/api/cart/count', {
-        headers: token ? {
+        headers: token && token !== 'undefined' ? {
             'Authorization': 'Bearer ' + token
         } : {}
     })
@@ -49,6 +49,12 @@ function fetchCartCount() {
         console.error('Error fetching cart count:', error);
         // Set cart count to 0 on error
         document.getElementById('cart-count').textContent = '0';
+        
+        // If token is invalid, clear it
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+        }
     });
 }
 
@@ -62,6 +68,50 @@ function logout() {
     
     // Redirect to home page
     window.location.href = '/';
+}
+
+// Function to handle API requests with token refresh if needed
+function apiRequest(method, url, data = null) {
+    return new Promise((resolve, reject) => {
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+            reject(new Error('No authentication token available'));
+            return;
+        }
+        
+        const headers = {
+            'Authorization': 'Bearer ' + token
+        };
+        
+        const config = {
+            method: method,
+            url: url,
+            headers: headers
+        };
+        
+        if (data) {
+            if (method.toLowerCase() === 'get') {
+                config.params = data;
+            } else {
+                config.data = data;
+            }
+        }
+        
+        axios(config)
+            .then(response => resolve(response))
+            .catch(error => {
+                // If token expired error, redirect to login
+                if (error.response && error.response.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                    reject(error);
+                } else {
+                    reject(error);
+                }
+            });
+    });
 }
 
 // Function to format price
@@ -114,7 +164,7 @@ function createProductCard(product) {
 function addToCart(productId, price) {
     const token = localStorage.getItem('token');
     
-    if (!token) {
+    if (!token || token === 'undefined') {
         alert('Please log in to add items to your cart.');
         window.location.href = '/login';
         return;
@@ -141,10 +191,12 @@ function addToCart(productId, price) {
         if (error.response && error.response.data) {
             console.error('Server response:', error.response.data);
             
-            // If authentication error, redirect to login
+            // If authentication error or token expired, redirect to login
             if (error.response.status === 401 || 
                 (error.response.data.message && 
-                 error.response.data.message.includes('Authentication'))) {
+                 (error.response.data.message.includes('Authentication') || 
+                  error.response.data.message.includes('Token süresi dolmuş') ||
+                  error.response.data.error === 'Signature has expired'))) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 alert('Your session has expired. Please log in again.');

@@ -270,8 +270,7 @@ def get_cart():
             '_id': ObjectId(item['product_id']),
             'is_deleted': False
         })
-        if product:
-            item['product_name'] = product['name']
+        # Don't overwrite the product_name to avoid duplication
         item['product_available'] = product is not None
     
     return jsonify({"items": cart_items}), 200
@@ -354,4 +353,47 @@ def remove_cart_item(cart_id):
             return jsonify({'message': 'Ürün sepetten kaldırılamadı'}), 500
     except Exception as e:
         print(f"Sepetten ürün kaldırma hatası: {str(e)}")
-        return jsonify({'message': f'Sepetten ürün kaldırma hatası: {str(e)}'}), 500 
+        return jsonify({'message': f'Sepetten ürün kaldırma hatası: {str(e)}'}), 500
+
+@cart_bp.route('/cart/update/<cart_id>', methods=['PUT'])
+@customer_required
+def update_cart_item(cart_id):
+    try:
+        current_user = get_jwt_identity()
+        data = request.get_json()
+        
+        if not data or 'quantity' not in data:
+            return jsonify({'message': 'Miktar belirtilmedi'}), 400
+        
+        quantity = int(data['quantity'])
+        if quantity <= 0:
+            return jsonify({'message': 'Miktar 1 veya daha fazla olmalıdır'}), 400
+        
+        # Sepet koleksiyonunu al
+        cart_collection = get_cart_collection()
+        if cart_collection is None:
+            return jsonify({'message': 'Veritabanı bağlantı hatası'}), 500
+        
+        # Sepet öğesini bul
+        cart_item = cart_collection.find_one({
+            '_id': ObjectId(cart_id),
+            'user_id': current_user['id'],
+            'is_checked_out': False
+        })
+        
+        if not cart_item:
+            return jsonify({'message': 'Sepet öğesi bulunamadı'}), 404
+        
+        # Sepet öğesini güncelle
+        result = cart_collection.update_one(
+            {'_id': ObjectId(cart_id), 'user_id': current_user['id']},
+            {'$set': {'quantity': quantity}}
+        )
+        
+        if result.modified_count > 0:
+            return jsonify({'message': 'Sepet öğesi güncellendi'}), 200
+        else:
+            return jsonify({'message': 'Sepet öğesi güncellenemedi'}), 500
+    except Exception as e:
+        print(f"Sepet öğesi güncelleme hatası: {str(e)}")
+        return jsonify({'message': f'Sepet öğesi güncelleme hatası: {str(e)}'}), 500 

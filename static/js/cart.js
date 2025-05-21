@@ -33,7 +33,7 @@ function loadCartData() {
     // Show loading indicator
     document.getElementById('cart-loading').classList.remove('d-none');
     document.getElementById('cart-empty').classList.add('d-none');
-    document.getElementById('cart-content').classList.add('d-none');
+    document.getElementById('cart-items').classList.add('d-none');
     
     // Get cart data from API
     axios.get('/api/cart', {
@@ -45,11 +45,15 @@ function loadCartData() {
         // Hide loading indicator
         document.getElementById('cart-loading').classList.add('d-none');
         
-        const cartItems = response.data.cart_items;
+        // Fix: Get cart items from the correct property in the response
+        const cartItems = response.data.items;
+        
+        // Debug: Log cart items to console
+        console.log('Cart items received from server:', cartItems);
         
         if (cartItems && cartItems.length > 0) {
             // Show cart content
-            document.getElementById('cart-content').classList.remove('d-none');
+            document.getElementById('cart-items').classList.remove('d-none');
             
             // Display cart items
             displayCartItems(cartItems);
@@ -81,6 +85,88 @@ function loadCartData() {
     });
 }
 
+// Function to display cart items
+function displayCartItems(cartItems) {
+    const cartItemsBody = document.getElementById('cart-items-body');
+    cartItemsBody.innerHTML = '';
+    
+    let subtotal = 0;
+    
+    cartItems.forEach(function(item) {
+        const row = document.createElement('tr');
+        
+        // Calculate item subtotal
+        const itemSubtotal = item.price * item.quantity;
+        subtotal += itemSubtotal;
+        
+        // Get image URL with fallback
+        const imageUrl = item.image_url || '/static/images/no-image.jpg';
+        
+        // Fix duplicated product names by checking if the name contains duplicated words
+        let productName = item.product_name;
+        const words = productName.split(' ');
+        if (words.length > 1) {
+            // Check if the first word is duplicated
+            const firstWord = words[0];
+            const isDuplicated = words.filter(word => word === firstWord).length > 1;
+            if (isDuplicated) {
+                // If duplicated, take only the first half of the name
+                const halfLength = Math.floor(words.length / 2);
+                productName = words.slice(0, halfLength).join(' ');
+            }
+        }
+        
+        row.innerHTML = `
+            <td>
+                <div class="d-flex align-items-center">
+                    <img src="${imageUrl}" alt="${productName}" class="img-thumbnail me-3" style="width: 50px;">
+                    <div>
+                        <h6 class="mb-0">${productName}</h6>
+                        <small class="text-muted">${item.variant_info || ''}</small>
+                    </div>
+                </div>
+            </td>
+            <td>$${item.price.toFixed(2)}</td>
+            <td>
+                <div class="input-group input-group-sm" style="width: 100px;">
+                    <button class="btn btn-outline-secondary decrease-qty" type="button" data-id="${item._id}">-</button>
+                    <input type="text" class="form-control text-center" value="${item.quantity}" readonly>
+                    <button class="btn btn-outline-secondary increase-qty" type="button" data-id="${item._id}">+</button>
+                </div>
+            </td>
+            <td>$${itemSubtotal.toFixed(2)}</td>
+            <td>
+                <button class="btn btn-sm btn-danger remove-item" data-id="${item._id}">Remove</button>
+            </td>
+        `;
+        
+        cartItemsBody.appendChild(row);
+        
+        // Add event listeners for quantity buttons
+        row.querySelector('.decrease-qty').addEventListener('click', function() {
+            if (item.quantity > 1) {
+                updateCartItemQuantity(item._id, item.quantity - 1);
+            }
+        });
+        
+        row.querySelector('.increase-qty').addEventListener('click', function() {
+            updateCartItemQuantity(item._id, item.quantity + 1);
+        });
+        
+        row.querySelector('.remove-item').addEventListener('click', function() {
+            removeCartItem(item._id);
+        });
+    });
+    
+    // Update order summary
+    const shipping = subtotal > 0 ? 10 : 0; // $10 shipping fee
+    const total = subtotal + shipping;
+    
+    document.getElementById('cart-subtotal').textContent = '$' + subtotal.toFixed(2);
+    document.getElementById('cart-shipping').textContent = '$' + shipping.toFixed(2);
+    document.getElementById('cart-total').textContent = '$' + total.toFixed(2);
+}
+
 // Function to update cart item quantity
 function updateCartItemQuantity(itemId, quantity) {
     const token = localStorage.getItem('token');
@@ -92,8 +178,7 @@ function updateCartItemQuantity(itemId, quantity) {
     }
     
     // Update cart item quantity in API
-    axios.put('/api/cart/update', {
-        item_id: itemId,
+    axios.put(`/api/cart/update/${itemId}`, {
         quantity: quantity
     }, {
         headers: {
@@ -134,12 +219,9 @@ function removeCartItem(itemId) {
     }
     
     // Remove cart item in API
-    axios.delete('/api/cart/remove', {
+    axios.delete(`/api/cart/remove/${itemId}`, {
         headers: {
             'Authorization': 'Bearer ' + token
-        },
-        data: {
-            item_id: itemId
         }
     })
     .then(function(response) {
@@ -205,7 +287,8 @@ function placeOrder() {
     
     // Place order
     axios.post('/api/orders', {
-        shipping_address: shippingAddress
+        shipping_address: shippingAddress,
+        items: [] // This will be filled by the backend from the user's cart
     }, {
         headers: {
             'Authorization': 'Bearer ' + token
@@ -224,5 +307,39 @@ function placeOrder() {
     .catch(function(error) {
         console.error('Error placing order:', error);
         alert('Failed to place order. Please try again.');
+    });
+}
+
+// Function to fetch cart count
+function fetchCartCount() {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+        return;
+    }
+    
+    axios.get('/api/cart/count', {
+        headers: {
+            'Authorization': 'Bearer ' + token
+        }
+    })
+    .then(function(response) {
+        const cartCount = response.data.count;
+        
+        // Update cart count in navbar
+        const cartCountElement = document.getElementById('cart-count');
+        if (cartCountElement) {
+            cartCountElement.textContent = cartCount;
+            
+            // Show or hide the badge based on count
+            if (cartCount > 0) {
+                cartCountElement.classList.remove('d-none');
+            } else {
+                cartCountElement.classList.add('d-none');
+            }
+        }
+    })
+    .catch(function(error) {
+        console.error('Error fetching cart count:', error);
     });
 } 

@@ -6,6 +6,17 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
+    // Clear localStorage if there's invalid data
+    try {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            JSON.parse(userData);
+        }
+    } catch (e) {
+        console.error('Invalid user data in localStorage, clearing it:', e);
+        localStorage.removeItem('user');
+    }
+    
     // Load profile data
     loadProfileData();
     
@@ -22,10 +33,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// Function to format price
+function formatPrice(price) {
+    return '$' + parseFloat(price).toFixed(2);
+}
+
 // Function to load profile data
 function loadProfileData() {
     const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user'));
+    let user = null;
+    let userId = null;
+    
+    try {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            user = JSON.parse(userData);
+            if (user && user.id) {
+                userId = user.id;
+            }
+        }
+    } catch (e) {
+        console.error('Error parsing user data from localStorage:', e);
+        // Clear invalid user data
+        localStorage.removeItem('user');
+    }
     
     if (!token || token === 'undefined') {
         window.location.href = '/login?redirect=/profile';
@@ -57,10 +88,45 @@ function loadProfileData() {
         
         // Handle expired token or authentication errors
         if (error.response && error.response.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            alert('Your session has expired. Please log in again.');
-            window.location.href = '/login?redirect=/profile';
+            // Try to use the user-info endpoint as fallback if we have a user ID
+            if (userId) {
+                console.log('Trying to fetch user data using user-info endpoint...');
+                axios.get(`/api/auth/user-info?id=${userId}`)
+                    .then(function(response) {
+                        if (response.data.success && response.data.user) {
+                            const userData = response.data.user;
+                            displayProfileData(userData);
+                            
+                            // Update localStorage but don't update the token
+                            localStorage.setItem('user', JSON.stringify(userData));
+                            
+                            // Show warning about expired session
+                            const warningAlert = document.createElement('div');
+                            warningAlert.className = 'alert alert-warning mt-3';
+                            warningAlert.textContent = 'Your session has expired. Some features may be limited. Please log in again for full access.';
+                            document.getElementById('profile-content').appendChild(warningAlert);
+                        } else {
+                            // Redirect to login if user-info also fails
+                            localStorage.removeItem('token');
+                            localStorage.removeItem('user');
+                            alert('Your session has expired. Please log in again.');
+                            window.location.href = '/login?redirect=/profile';
+                        }
+                    })
+                    .catch(function(err) {
+                        console.error('Error with fallback user-info endpoint:', err);
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        alert('Your session has expired. Please log in again.');
+                        window.location.href = '/login?redirect=/profile';
+                    });
+            } else {
+                // No user ID available, redirect to login
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                alert('Your session has expired. Please log in again.');
+                window.location.href = '/login?redirect=/profile';
+            }
             return;
         }
         
@@ -124,7 +190,23 @@ function displayProfileData(user) {
 
 // Function to show edit profile modal
 function showEditProfileModal() {
-    const user = JSON.parse(localStorage.getItem('user'));
+    let user = null;
+    
+    try {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            user = JSON.parse(userData);
+        }
+    } catch (e) {
+        console.error('Error parsing user data from localStorage:', e);
+        alert('There was an error loading your profile data. Please refresh the page.');
+        return;
+    }
+    
+    if (!user) {
+        alert('Profile data not found. Please refresh the page.');
+        return;
+    }
     
     // Set current profile data in the form
     let fullName = "";
@@ -155,6 +237,18 @@ function showEditProfileModal() {
 // Function to update profile
 function updateProfile() {
     const token = localStorage.getItem('token');
+    let user = null;
+    
+    try {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            user = JSON.parse(userData);
+        }
+    } catch (e) {
+        console.error('Error parsing user data from localStorage:', e);
+        showError('edit-profile-error', 'Error loading profile data. Please refresh the page and try again.');
+        return;
+    }
     
     // Get form data
     const name = document.getElementById('edit-name').value;
@@ -202,11 +296,12 @@ function updateProfile() {
     .then(function(response) {
         console.log('Profile update response:', response.data);
         // Update localStorage
-        const user = JSON.parse(localStorage.getItem('user'));
-        user.first_name = data.first_name;
-        user.last_name = data.last_name;
-        user.name = name;
-        localStorage.setItem('user', JSON.stringify(user));
+        if (user) {
+            user.first_name = data.first_name;
+            user.last_name = data.last_name;
+            user.name = name;
+            localStorage.setItem('user', JSON.stringify(user));
+        }
         
         // Update profile display
         document.getElementById('profile-name').textContent = name;
@@ -250,7 +345,7 @@ function loadOrders() {
         
         const orders = response.data.orders;
         
-        if (orders.length === 0) {
+        if (!orders || orders.length === 0) {
             // Show empty orders message
             document.getElementById('orders-empty').classList.remove('d-none');
             return;
@@ -310,14 +405,17 @@ function displayOrders(orders) {
                 break;
         }
         
+        // Use id or _id depending on what's available
+        const orderId = order.id || order._id;
+        
         row.innerHTML = `
-            <td>${order._id}</td>
+            <td>${orderId}</td>
             <td>${formattedDate}</td>
-            <td>${order.items.length}</td>
+            <td>-</td>
             <td>${formatPrice(order.total_amount)}</td>
             <td><span class="badge ${statusBadgeClass}">${order.status}</span></td>
             <td>
-                <button class="btn btn-sm btn-outline-primary view-order-btn" data-id="${order._id}">
+                <button class="btn btn-sm btn-outline-primary view-order-btn" data-id="${orderId}">
                     View Details
                 </button>
             </td>
@@ -325,7 +423,7 @@ function displayOrders(orders) {
         
         // Add event listener for view order button
         row.querySelector('.view-order-btn').addEventListener('click', function() {
-            showOrderDetails(order._id);
+            showOrderDetails(orderId);
         });
         
         ordersTableBody.appendChild(row);
@@ -359,33 +457,45 @@ function showOrderDetails(orderId) {
         // Show order details
         document.getElementById('order-details-content').classList.remove('d-none');
         
-        // Set order information
-        document.getElementById('order-id').textContent = order._id;
-        document.getElementById('order-status').textContent = order.status;
-        document.getElementById('order-total').textContent = formatPrice(order.total_amount);
-        document.getElementById('order-address').textContent = order.shipping_address;
+        // Set order information - handle both id and _id properties
+        document.getElementById('order-id').textContent = order.id || order._id || orderId;
+        document.getElementById('order-status').textContent = order.status || 'Unknown';
+        document.getElementById('order-total').textContent = formatPrice(order.total_amount || 0);
+        document.getElementById('order-address').textContent = order.shipping_address || 'No address provided';
         
         // Format date
-        const orderDate = new Date(order.created_at);
-        document.getElementById('order-date').textContent = orderDate.toLocaleString();
+        let orderDate;
+        try {
+            orderDate = new Date(order.created_at || Date.now());
+            document.getElementById('order-date').textContent = orderDate.toLocaleString();
+        } catch (e) {
+            document.getElementById('order-date').textContent = 'Unknown date';
+        }
         
         // Display order items
         const orderItemsBody = document.getElementById('order-items-body');
         orderItemsBody.innerHTML = '';
         
-        order.items.forEach(function(item) {
-            const itemSubtotal = item.price * item.quantity;
-            
+        if (order.items && Array.isArray(order.items)) {
+            order.items.forEach(function(item) {
+                const itemSubtotal = (item.price || 0) * (item.quantity || 0);
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.product_name || 'Unknown product'}</td>
+                    <td>${formatPrice(item.price || 0)}</td>
+                    <td>${item.quantity || 0}</td>
+                    <td>${formatPrice(itemSubtotal)}</td>
+                `;
+                
+                orderItemsBody.appendChild(row);
+            });
+        } else {
+            // No items or invalid items array
             const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${item.product_name}</td>
-                <td>${formatPrice(item.price)}</td>
-                <td>${item.quantity}</td>
-                <td>${formatPrice(itemSubtotal)}</td>
-            `;
-            
+            row.innerHTML = '<td colspan="4" class="text-center">No items found for this order</td>';
             orderItemsBody.appendChild(row);
-        });
+        }
     })
     .catch(function(error) {
         console.error('Error loading order details:', error);

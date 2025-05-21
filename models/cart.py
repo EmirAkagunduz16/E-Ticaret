@@ -62,6 +62,47 @@ class Cart:
         return cart_items
     
     @staticmethod
+    def get_items(user_id):
+        """Kullanıcının sepetindeki ürünleri, ürün bilgileriyle birlikte getir"""
+        db = get_db()
+        carts_collection = db.carts
+        
+        # Get cart items
+        cart_items = list(carts_collection.find({
+            'user_id': user_id,
+            'is_checked_out': False
+        }))
+        
+        # Get product details for each item
+        result = []
+        for item in cart_items:
+            # Convert MongoDB ObjectId to string
+            item_id = str(item['_id'])
+            
+            # Get product details from MySQL
+            conn = get_mysql_connection()
+            cursor = conn.cursor(dictionary=True)
+            
+            query = "SELECT * FROM products WHERE id = %s"
+            cursor.execute(query, (item['product_id'],))
+            
+            product = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if product:
+                result.append({
+                    'id': item_id,
+                    'product_id': item['product_id'],
+                    'quantity': item['quantity'],
+                    'price': float(item['price']),
+                    'product_name': product['name'],
+                    'product_image': product['image']
+                })
+        
+        return result
+    
+    @staticmethod
     def update_quantity(cart_id, quantity):
         """Sepetteki ürünün miktarını güncelle"""
         db = get_db()

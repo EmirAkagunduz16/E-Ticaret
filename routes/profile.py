@@ -13,10 +13,16 @@ def get_profile():
     
     if user:
         return jsonify({
-            'email': user['email'],
-            'first_name': user['first_name'],
-            'last_name': user['last_name'],
-            'role': user['role']
+            'success': True,
+            'user': {
+                'id': user['id'],
+                'email': user['email'],
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'role': user['role'],
+                'created_at': user['created_at'].isoformat() if user['created_at'] else None,
+                'name': f"{user['first_name']} {user['last_name']}".strip()
+            }
         }), 200
     
     return jsonify({'message': 'User not found'}), 404

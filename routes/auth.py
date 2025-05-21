@@ -3,10 +3,11 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from config.mongodb_db import get_db
 from config.mysql_db import get_mysql_connection
 from models.user import User
-from utils.helpers import send_email
+from utils.helpers import send_email, hash_password, check_password, send_reset_email
 from config.settings import Config
 from datetime import datetime, timedelta
 import os
+import re
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -19,29 +20,39 @@ def get_password_reset_tokens():
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
+    """Kullanıcı kaydı"""
     data = request.get_json()
     
-    # Kullanıcının zaten var olup olmadığını kontrol et
-    if User.find_by_email(data['email']):
-        return jsonify({'message': 'Bu e-posta adresi zaten kullanılıyor'}), 400
+    if not data:
+        return jsonify({'message': 'No data provided'}), 400
     
-    # Kullanıcı verilerini oluştur
-    user_data = {
-        'username': data.get('username', data['email'].split('@')[0]),
+    # Gerekli alanları kontrol et
+    required_fields = ['username', 'email', 'password', 'first_name', 'last_name']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'message': f'Missing required field: {field}'}), 400
+    
+    # E-posta formatını doğrula
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, data['email']):
+        return jsonify({'message': 'Invalid email format'}), 400
+    
+    # Kullanıcı adı veya e-posta zaten kullanılıyor mu kontrol et
+    existing_user = User.find_by_email(data['email'])
+    if existing_user:
+        return jsonify({'message': 'Email already in use'}), 400
+    
+    # Yeni kullanıcıyı oluştur
+    user_id = User.create({
+        'username': data['username'],
         'email': data['email'],
         'password': data['password'],
-        'first_name': data.get('first_name', ''),
-        'last_name': data.get('last_name', ''),
-        'role': data.get('role', 'customer')
-    }
+        'first_name': data['first_name'],
+        'last_name': data['last_name'],
+        'role': 'customer'  # Varsayılan rol
+    })
     
-    # Yeni kullanıcı oluştur
-    user_id = User.create(user_data)
-    
-    if user_id:
-        return jsonify({'message': 'Kullanıcı başarıyla kaydedildi'}), 201
-    else:
-        return jsonify({'message': 'Kullanıcı oluşturma hatası'}), 500
+    return jsonify({'message': 'User registered successfully', 'user_id': user_id}), 201
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -233,4 +244,46 @@ def verify_token():
 # Update API routes with correct prefixes
 @auth_bp.route('/api/auth/verify-token', methods=['GET'])
 def api_verify_token():
-    return verify_token() 
+    return verify_token()
+
+# Add a user info endpoint that doesn't require JWT authentication
+@auth_bp.route('/user-info', methods=['GET'])
+def get_user_info():
+    """Get user info from the session cookie"""
+    # Get the user ID from the request arguments
+    user_id = request.args.get('id')
+    if not user_id:
+        return jsonify({
+            'success': False,
+            'message': 'User ID is required'
+        }), 400
+    
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        return jsonify({
+            'success': False,
+            'message': 'Invalid user ID'
+        }), 400
+    
+    # Get the user from the database
+    user = User.find_by_id(user_id)
+    if not user:
+        return jsonify({
+            'success': False,
+            'message': 'User not found'
+        }), 404
+    
+    # Return the user data (excluding sensitive information)
+    return jsonify({
+        'success': True,
+        'user': {
+            'id': user['id'],
+            'email': user['email'],
+            'first_name': user['first_name'],
+            'last_name': user['last_name'],
+            'role': user['role'],
+            'created_at': user['created_at'].isoformat() if user['created_at'] else None,
+            'name': f"{user['first_name']} {user['last_name']}".strip()
+        }
+    }), 200 

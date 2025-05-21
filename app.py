@@ -95,11 +95,13 @@ def create_app(config_class=Config):
     from routes.products import products_bp
     from routes.cart import cart_bp
     from routes.dev import dev_bp
+    from routes.orders import orders_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(profile_bp, url_prefix='/api')
     app.register_blueprint(products_bp, url_prefix='/api')
     app.register_blueprint(cart_bp, url_prefix='/api')
+    app.register_blueprint(orders_bp, url_prefix='/api')
     app.register_blueprint(dev_bp, url_prefix='')
     
     # Hata işleyicilerini kaydet

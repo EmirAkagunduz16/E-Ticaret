@@ -206,3 +206,33 @@ def send_email(subject, recipient, body, is_html=False, template=None, template_
     except Exception as e:
         email_logger.error(f"E-posta gönderimi hatası: {str(e)}")
         return False 
+
+def send_reset_email(user_email, user_name, reset_link, sender=None):
+    """Şifre sıfırlama e-postası gönderir
+    
+    Args:
+        user_email: Kullanıcının e-posta adresi
+        user_name: Kullanıcının adı
+        reset_link: Şifre sıfırlama bağlantısı
+        sender: Gönderici e-posta adresi (None ise varsayılan gönderici kullanılır)
+    
+    Returns:
+        bool: E-posta başarıyla gönderildiğinde True, aksi halde False
+    """
+    app_url = Config.APP_URL
+    if app_url is None or "localhost" in app_url:
+        app_url = "http://localhost:5000"
+        
+    return send_email(
+        "Şifre Sıfırlama İsteği",
+        user_email,
+        f"Lütfen aşağıdaki linki tıklayarak şifrenizi sıfırlayın: {reset_link}",
+        is_html=True,
+        template="emails/password_reset.html",
+        template_data={
+            'user_name': user_name,
+            'reset_link': reset_link,
+            'app_url': app_url
+        },
+        sender=sender
+    ) 

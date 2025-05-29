@@ -80,7 +80,21 @@ def register():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
+    """Kullanıcı girişi"""
     data = request.get_json()
+    
+    # Data kontrolü ekle
+    if not data:
+        return jsonify({'message': 'No data provided'}), 400
+    
+    # Gerekli alanları kontrol et
+    if 'email' not in data or 'password' not in data:
+        return jsonify({'message': 'Email and password are required'}), 400
+    
+    # Boş değerleri kontrol et
+    if not data['email'].strip() or not data['password'].strip():
+        return jsonify({'message': 'Email and password cannot be empty'}), 400
+    
     user = User.verify_password(data['email'], data['password'])
     
     if user:

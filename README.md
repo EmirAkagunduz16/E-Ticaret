@@ -119,6 +119,117 @@ pip install -r requirements.txt
 pip install -r test-requirements.txt
 ```
 
+## DoS Dayanıklılık Testleri (Performans Testleri)
+
+Uygulama, DoS (Denial of Service) saldırılarına karşı dayanıklılığını test etmek için Locust tabanlı performans testleri içerir.
+
+### DoS Testi Özellikleri
+
+DoS testi şu senaryoları kapsar:
+- **Ana sayfa yükü**: Eşzamanlı ana sayfa ziyaretleri
+- **Ürün sayfası yükü**: Ürünler sayfasına yoğun trafik
+- **API endpoint testleri**: Ürün listeleme, arama ve öne çıkan ürünler API'leri
+- **Brute force saldırısı simülasyonu**: Sürekli giriş denemeleri
+- **Sepet saldırısı testleri**: Yetkisiz sepet işlemi denemeleri
+- **Ağır arama sorguları**: Büyük veri setlerinde arama işlemleri
+
+### DoS Testini Çalıştırma
+
+#### Yöntem 1: Komut Satırı (Headless Mode)
+
+```bash
+# Uygulamayı başlat (ayrı terminal)
+flask run
+
+# DoS testini çalıştır (ana terminal)
+# Temel test - 10 kullanıcı, 30 saniye
+locust -f tests/performance/test_dos.py --host=http://localhost:5000 --headless --users 10 --spawn-rate 2 --run-time 30s
+
+# Orta seviye test - 25 kullanıcı, 2 dakika
+locust -f tests/performance/test_dos.py --host=http://localhost:5000 --headless --users 25 --spawn-rate 5 --run-time 2m
+
+# Ağır test - 50 kullanıcı, 5 dakika
+locust -f tests/performance/test_dos.py --host=http://localhost:5000 --headless --users 50 --spawn-rate 10 --run-time 5m
+```
+
+#### Yöntem 2: Web Arayüzü
+
+```bash
+# Uygulamayı başlat (ayrı terminal)
+flask run
+
+# DoS test web arayüzünü başlat
+locust -f tests/performance/test_dos.py --host=http://localhost:5000
+
+# Tarayıcıda http://localhost:8089 adresine git
+# Web arayüzünden test parametrelerini ayarla:
+# - Number of users: 10-50 arası
+# - Spawn rate: 2-10 arası
+# - Host: http://localhost:5000
+```
+
+### DoS Test Parametreleri
+
+| Parametre | Açıklama | Önerilen Değerler |
+|-----------|----------|-------------------|
+| `--users` | Eşzamanlı kullanıcı sayısı | 10-50 (başlangıç için 10) |
+| `--spawn-rate` | Saniyede eklenen kullanıcı sayısı | 1-10 (users'ın 1/5'i) |
+| `--run-time` | Test süresi | 30s-5m (başlangıç için 30s) |
+| `--host` | Test edilecek sunucu | http://localhost:5000 |
+
+### DoS Test Sonuçlarını Anlama
+
+#### Başarılı Bir Test:
+```
+Type     Name    # reqs      # fails |    Avg     Min     Max    Med |   req/s  failures/s
+--------|------|-------|-------------|-------|-------|-------|-------|--------|-----------
+GET      /           50     0(0.00%) |      5       2      15      4 |    2.50        0.00
+GET      /products   45     0(0.00%) |      8       3      25      7 |    2.25        0.00
+--------|------|-------|-------------|-------|-------|-------|-------|--------|-----------
+         Aggregated  120    5(4.17%) |      6       2      45      5 |    6.00        0.25
+```
+
+#### Başarı Kriterleri:
+- **✅ 0-10% hata oranı**: Normal (çoğu hata yetkisiz istekler)
+- **✅ Yanıt süresi < 100ms**: Çok iyi performans
+- **✅ Yanıt süresi < 500ms**: Kabul edilebilir performans
+- **✅ Uygulama çökmedi**: DoS dayanıklı
+
+#### Alarm Verilecek Durumlar:
+- **❌ %50+ hata oranı**: Ciddi sorun
+- **❌ Yanıt süresi > 1000ms**: Performans sorunu
+- **❌ Uygulama çöktü**: DoS zafiyeti
+
+### DoS Test Senaryoları
+
+Test dosyası şu senaryoları simüle eder:
+
+1. **Normal Kullanıcı Trafiği**: Ana sayfa ve ürün sayfası ziyaretleri
+2. **API Saldırısı**: Yoğun API istekleri
+3. **Brute Force Saldırısı**: Sürekli login denemeleri
+4. **Kaynak Tüketimi**: Ağır arama sorguları
+5. **Yetkisiz Erişim**: Sepet işlemlerine izinsiz erişim
+
+### Güvenlik ve Performans Önerileri
+
+DoS testleri sonrasında şu noktalara dikkat edin:
+
+1. **Rate Limiting**: Gerekirse Flask-Limiter ekleyin
+2. **Caching**: Redis veya Memcached kullanın
+3. **Database İndeksler**: MongoDB query optimizasyonu
+4. **NGINX**: Reverse proxy kullanın
+5. **CloudFlare**: DDoS koruması için
+
+### DoS Test Gereksinimleri
+
+```bash
+# Locust'u yükleyin
+pip install locust
+
+# Veya test-requirements.txt'den
+pip install -r test-requirements.txt
+```
+
 ## UI Testleri için Selenium Kurulumu
 
 Selenium UI testlerini çalıştırmak için aşağıdaki adımları izleyin:

@@ -4,28 +4,23 @@
 
 ### Hızlı Başlangıç
 ```bash
-# Projeyi kurmak için
-make setup
+# Sanal ortam oluştur ve aktifleştir
+python3 -m venv venv
+source venv/bin/activate
 
-# .env dosyasını oluşturmak için
+# Bağımlılıkları yükle
+pip install -r requirements.txt
+pip install -r test-requirements.txt
+
+# .env dosyasını oluştur
 cp env.example .env
 # .env dosyasını düzenleyin
 
-# Veritabanını başlatmak için
-make init-db
+# Veritabanını başlat
+python init_db.py
 
-# Testleri çalıştırmak için
-make test
-
-# Uygulamayı çalıştırmak için
-make run
-```
-
-
-### Tüm Komutlar
-Makefile ile kullanılabilecek tüm komutları görmek için:
-```bash
-make help
+# Uygulamayı çalıştır (testler otomatik başlar)
+flask run
 ```
 
 ## E-posta Yapılandırması
@@ -82,27 +77,46 @@ Eğer e-posta gönderilemezse (örneğin SMTP yapılandırması yanlışsa), sis
 
 ## Test Yapılandırması
 
-Uygulama kapsamlı test altyapısı içerir:
+Uygulama kapsamlı test altyapısı içerir ve testler Flask uygulaması çalışırken otomatik olarak başlatılır.
 
 ### Test Türleri
 - **Unit Testler**: Model ve temel işlevsellik testleri
 - **Entegrasyon Testleri**: API endpoint'leri için testler
+  - Auth API testleri (kayıt, giriş, şifre sıfırlama)
+  - Products API testleri (ürün CRUD işlemleri)
+  - Cart API testleri (sepet işlemleri, checkout)
 - **UI Testleri**: Selenium ile otomatik arayüz testleri
 - **Performans Testleri**: Locust ile DoS dayanıklılık testleri
 
-### Test Çalıştırma
-Testleri çalıştırmak için:
-```
-make test          # Tüm testleri çalıştırır
-make test-unit     # Sadece unit testleri çalıştırır
-make test-selenium # Sadece UI testleri çalıştırır
-```
+### Otomatik Test Çalıştırma
+Flask uygulaması başlatıldığında (`flask run`) testler otomatik olarak çalışır. Ayrıca admin panelinden de testleri manuel olarak çalıştırabilirsiniz.
 
+### Manuel Test Çalıştırma
+Flask uygulaması çalışırken ayrı bir terminalden testleri manuel olarak çalıştırmak için:
+
+```bash
+# Yeni terminal açın ve proje dizinine gidin
+cd ~/Desktop/E-Ticaret-flask
+source venv/bin/activate
+
+# Tüm testleri çalıştır
+python run_tests.py
+
+# Sadece unit testleri
+python run_tests.py --unit
+
+# Sadece entegrasyon testleri
+python run_tests.py --integration
+
+# Sadece selenium testleri
+python run_tests.py --selenium
+```
 
 ### Test Gereksinimleri
 Testleri çalıştırmak için gerekli paketleri yükleyin:
-```
-make install
+```bash
+pip install -r requirements.txt
+pip install -r test-requirements.txt
 ```
 
 ## UI Testleri için Selenium Kurulumu
@@ -126,8 +140,8 @@ Selenium UI testlerini çalıştırmak için aşağıdaki adımları izleyin:
    ```
 
 3. Testleri çalıştırın:
-   ```
-   python -m pytest tests/selenium/test_ui.py
+   ```bash
+   python run_tests.py --selenium
    ```
 
 ### Chromium ile Kullanım
@@ -154,13 +168,18 @@ Selenium UI testlerini çalıştırmak için aşağıdaki adımları izleyin:
    ```
 
 4. Testleri çalıştırın:
-   ```
-   python run_tests.py
+   ```bash
+   python run_tests.py --selenium
    ```
 
 Eğer ChromeDriver hataları alıyorsanız, şu komutla ChromeDriver'ı manuel olarak yüklemeyi deneyebilirsiniz:
 ```
 CHROMEDRIVER_PATH=$(which chromium) python -c "from webdriver_manager.chrome import ChromeDriverManager; from webdriver_manager.core.utils import ChromeType; print(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())"
 ```
+
+### Önemli Notlar
+- Uygulama başlatıldığında testler otomatik olarak çalışır
+- Admin paneline erişim: `http://localhost:5000/admin` (admin/admin123)
+- Ana site: `http://localhost:5000`
 
 ``` 

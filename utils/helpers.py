@@ -3,7 +3,7 @@ import re
 import secrets
 import bcrypt
 from flask import current_app
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import jwt
 from flask import render_template
 import logging
@@ -114,11 +114,11 @@ def generate_token(user_id, expires_delta=None):
     if expires_delta is None:
         expires_delta = timedelta(days=1)
     
-    expires = datetime.utcnow() + expires_delta
+    expires = datetime.now(timezone.utc) + expires_delta
     
     payload = {
         'exp': expires,
-        'iat': datetime.utcnow(),
+        'iat': datetime.now(timezone.utc),
         'sub': user_id
     }
     

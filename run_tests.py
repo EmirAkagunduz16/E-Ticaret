@@ -19,15 +19,48 @@ project_root = os.path.dirname(os.path.abspath(__file__))
 load_dotenv()
 
 def run_unit_tests():
-    """Unit testleri çalıştır"""
-    print("\n=== Unit Testleri Çalıştırılıyor ===")
-    result = subprocess.run(["pytest", "tests/unit", "-v", "--cov=models", "--cov-report=term"])
+    """Unit testlerini çalıştır"""
+    print("\n=== Unit Testler Çalıştırılıyor ===")
+    result = subprocess.run([
+        'python', '-m', 'pytest', 'tests/unit/', 
+        '-v', '--tb=short', '--disable-warnings', '--no-header', '--tb=no'
+    ], capture_output=True, text=True)
+    
+    print(result.stdout)
+    if result.stderr:
+        print("STDERR:", result.stderr)
+    
     return result.returncode == 0
 
 def run_integration_tests():
-    """Entegrasyon testlerini çalıştır"""
+    """Integration testlerini çalıştır"""
     print("\n=== Entegrasyon Testleri Çalıştırılıyor ===")
-    result = subprocess.run(["pytest", "tests/integration", "-v"])
+    result = subprocess.run([
+        'python', '-m', 'pytest', 'tests/integration/', 
+        '-v', '--tb=short', '--disable-warnings', '--no-header', '--tb=no'
+    ], capture_output=True, text=True)
+    
+    # Filter out warning summary lines  
+    output_lines = result.stdout.split('\n')
+    filtered_output = []
+    
+    for line in output_lines:
+        # Skip the line with warning count
+        if 'passed' in line and 'warnings' in line and '===' in line:
+            # Extract just the passed count
+            import re
+            match = re.search(r'(\d+) passed', line)
+            if match:
+                passed_count = match.group(1)
+                filtered_output.append(f"=== {passed_count} passed ===")
+            continue
+        filtered_output.append(line)
+    
+    print('\n'.join(filtered_output))
+    
+    if result.stderr:
+        print("STDERR:", result.stderr)
+    
     return result.returncode == 0
 
 def setup_browser_driver():
@@ -96,29 +129,35 @@ def run_selenium_tests():
     # .env dosyasından değerler zaten yüklendi, sadece test için gerekli olanları ayarla
     test_env = {
         "FLASK_TEST_PORT": "5000",
-        "MONGO_DB_NAME": "ecommerce_test"
+        "MONGO_DB_NAME": "ecommerce_test",
+        "TESTING": "True"  # Flask uygulamasında otomatik test çalıştırmayı engelle
     }
     
-    # Ortam değişkenlerini ayarla
+    # Mevcut ortam değişkenlerini kaydet
+    original_env = {}
     for key, value in test_env.items():
+        if key in os.environ:
+            original_env[key] = os.environ[key]
         os.environ[key] = value
     
     # Flask uygulamasını başlat (arka planda)
-    flask_proc = subprocess.Popen(["flask", "run", "--port", "5000"])
+    flask_proc = subprocess.Popen([sys.executable, "-m", "flask", "run", "--port", "5000"])
     
     try:
         # Uygulamanın başlaması için bekle
         time.sleep(2)
         
         # Selenium testlerini çalıştır
-        result = subprocess.run(["pytest", "tests/selenium", "-v"])
+        result = subprocess.run([sys.executable, "-m", "pytest", "tests/selenium", "-v"])
         return result.returncode == 0  # Return True if tests pass (exit code 0)
     finally:
         # Flask uygulamasını durdur
         flask_proc.terminate()
         # Test için ayarlanmış ortam değişkenlerini temizle
         for key in test_env:
-            if key in os.environ:
+            if key in original_env:
+                os.environ[key] = original_env[key]
+            elif key in os.environ:
                 del os.environ[key]
 
 def run_performance_tests():

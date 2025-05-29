@@ -1,0 +1,590 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Ürün Düzenle - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold text-dark">
+                    <i class="fas fa-edit text-primary"></i> Ürün Düzenle
+                </h1>
+                <p class="text-muted">Ürün bilgilerini güncelleyin</p>
+            </div>
+            <div>
+                <a href="{{ url_for('admin.admin_products') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Ürün Listesine Dön
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 col-md-10 mx-auto">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle text-primary"></i> Ürün Bilgileri
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="editProductForm">
+                    <div class="row">
+                        <!-- Ürün Adı -->
+                        <div class="col-md-12 mb-3">
+                            <label for="name" class="form-label">
+                                <i class="fas fa-tag text-primary"></i> Ürün Adı *
+                            </label>
+                            <input type="text" class="form-control" id="name" name="name" required 
+                                   value="{{ product.name if product else '' }}"
+                                   placeholder="Ürününüzün adını girin..." maxlength="200">
+                            <div class="form-text">Ürünün mağazada görünecek adı (maksimum 200 karakter)</div>
+                        </div>
+
+                        <!-- Açıklama -->
+                        <div class="col-md-12 mb-3">
+                            <label for="description" class="form-label">
+                                <i class="fas fa-align-left text-primary"></i> Ürün Açıklaması *
+                            </label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required 
+                                      placeholder="Ürününüzün detaylı açıklamasını girin..." maxlength="1000">{{ product.description if product else '' }}</textarea>
+                            <div class="form-text">Ürünün özelliklerini ve detaylarını açıklayın (maksimum 1000 karakter)</div>
+                        </div>
+
+                        <!-- Fiyat ve Stok -->
+                        <div class="col-md-6 mb-3">
+                            <label for="price" class="form-label">
+                                <i class="fas fa-dollar-sign text-success"></i> Satış Fiyatı *
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="price" name="price" 
+                                       step="0.01" min="0" max="999999.99" required 
+                                       value="{{ '%.2f'|format(product.price) if product else '' }}"
+                                       placeholder="999.99">
+                                <span class="input-group-text">$</span>
+                            </div>
+                            <div class="form-text">Ürünün satış fiyatını USD cinsinden girin</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="stock" class="form-label">
+                                <i class="fas fa-boxes text-warning"></i> Stok Adedi *
+                            </label>
+                            <input type="number" class="form-control" id="stock" name="stock" 
+                                   min="0" max="999999" required 
+                                   value="{{ product.stock if product else '' }}"
+                                   placeholder="0">
+                            <div class="form-text">Mevcut stok miktarını girin</div>
+                        </div>
+
+                        <!-- Ürün ID ve Tedarikçi Bilgisi -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-barcode text-info"></i> Ürün ID
+                            </label>
+                            <input type="text" class="form-control" readonly 
+                                   value="{{ product._id if product else 'Yeni Ürün' }}">
+                            <div class="form-text">Otomatik oluşturulan benzersiz ürün kimliği</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-user text-info"></i> Tedarikçi
+                            </label>
+                            <input type="text" class="form-control" readonly 
+                                   value="{{ product.supplier_id if product else session.get('admin_username', 'admin') }}">
+                            <div class="form-text">Ürünü ekleyen tedarikçi</div>
+                        </div>
+
+                        <!-- Tarih Bilgileri -->
+                        {% if product and product.created_at %}
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-calendar-plus text-info"></i> Eklenme Tarihi
+                            </label>
+                            <input type="text" class="form-control" readonly 
+                                   value="{{ product.created_at.strftime('%d.%m.%Y %H:%M') }}">
+                        </div>
+                        {% endif %}
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-calendar-check text-info"></i> Son Güncelleme
+                            </label>
+                            <input type="text" class="form-control" readonly 
+                                   value="Şimdi güncellenecek">
+                        </div>
+                    </div>
+
+                    <!-- Tehlikeli İşlemler -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="alert alert-warning">
+                                <h6 class="alert-heading">
+                                    <i class="fas fa-exclamation-triangle"></i> Dikkat!
+                                </h6>
+                                <p class="mb-0">Bu ürünü düzenleme işlemi geri alınamaz. Değişiklikler tüm sistemde anında etkili olacaktır.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Butonları -->
+                    <div class="row">
+                        <div class="col-12">
+                            <hr class="my-4">
+                            <div class="d-flex justify-content-between flex-wrap gap-2">
+                                <div>
+                                    <button type="button" class="btn btn-outline-info" onclick="showProductHistory()">
+                                        <i class="fas fa-history"></i> Değişiklik Geçmişi
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="resetChanges()">
+                                        <i class="fas fa-undo"></i> Değişiklikleri Geri Al
+                                    </button>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('admin.admin_products') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times"></i> İptal
+                                    </a>
+                                    <button type="submit" class="btn btn-primary btn-custom ms-2">
+                                        <i class="fas fa-save"></i> Değişiklikleri Kaydet
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tehlikeli İşlemler Kartı -->
+        <div class="card mt-4 border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Tehlikeli İşlemler
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6 class="text-danger">Ürünü Sil</h6>
+                        <p class="text-muted mb-0">
+                            Bu işlem ürünü kalıcı olarak sistemden kaldırır. 
+                            Bu işlem <strong>geri alınamaz</strong> ve ürün tüm sipariş geçmişinden silinir.
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button type="button" class="btn btn-outline-danger" onclick="deleteProduct()">
+                            <i class="fas fa-trash"></i> Ürünü Sil
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Geçmiş Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-history"></i> Değişiklik Geçmişi
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-success"></div>
+                        <div class="timeline-content">
+                            <h6 class="timeline-title">Ürün Oluşturuldu</h6>
+                            <p class="timeline-text">
+                                {% if product and product.created_at %}
+                                    {{ product.created_at.strftime('%d.%m.%Y %H:%M') }}
+                                {% else %}
+                                    Tarih bilgisi yok
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-info"></div>
+                        <div class="timeline-content">
+                            <h6 class="timeline-title">Son Güncelleme</h6>
+                            <p class="timeline-text">Henüz güncelleme yapılmadı</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Silme Onay Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Ürün Silme Onayı
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-trash fa-4x text-danger"></i>
+                </div>
+                <h5 class="text-center">Bu ürünü silmek istediğinizden emin misiniz?</h5>
+                <div class="alert alert-danger mt-3">
+                    <strong>Dikkat:</strong> Bu işlem geri alınamaz!
+                    <ul class="mt-2 mb-0">
+                        <li>Ürün kalıcı olarak silinecek</li>
+                        <li>Tüm sipariş geçmişinden kaldırılacak</li>
+                        <li>İlişkili veriler kaybolacak</li>
+                    </ul>
+                </div>
+                <div class="mt-3">
+                    <label for="deleteConfirmation" class="form-label">
+                        Silme işlemini onaylamak için ürün adını yazın:
+                    </label>
+                    <input type="text" class="form-control" id="deleteConfirmation" 
+                           placeholder="{{ product.name if product else 'Ürün adı' }}">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" disabled onclick="confirmDelete()">
+                    <i class="fas fa-trash"></i> Evet, Sil
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 1.5rem;
+    width: 2px;
+    height: calc(100% - 0.5rem);
+    background-color: #dee2e6;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -2rem;
+    top: 0.25rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.timeline-content {
+    margin-left: 0.5rem;
+}
+
+.timeline-title {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.timeline-text {
+    margin-bottom: 0;
+    color: #6c757d;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-color: #ced4da;
+}
+
+.character-count {
+    font-size: 0.875rem;
+    color: #6c757d;
+    text-align: right;
+}
+
+.character-count.warning {
+    color: #fd7e14;
+}
+
+.character-count.danger {
+    color: #dc3545;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Orijinal form değerleri
+const originalValues = {
+    name: '{{ product.name if product else "" }}',
+    description: `{{ product.description if product else "" }}`,
+    price: '{{ "%.2f"|format(product.price) if product else "" }}',
+    stock: '{{ product.stock if product else "" }}'
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('editProductForm');
+    const nameInput = document.getElementById('name');
+    const descInput = document.getElementById('description');
+    const deleteConfirmInput = document.getElementById('deleteConfirmation');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+    // Karakter sayacı ekleme
+    addCharacterCounter(nameInput, 200);
+    addCharacterCounter(descInput, 1000);
+
+    // Silme onayı input kontrolü
+    if (deleteConfirmInput && confirmDeleteBtn) {
+        deleteConfirmInput.addEventListener('input', function() {
+            const expectedName = '{{ product.name if product else "" }}';
+            confirmDeleteBtn.disabled = this.value !== expectedName;
+        });
+    }
+
+    // Form submit
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (validateForm()) {
+            const formData = new FormData(form);
+            
+            fetch('{{ url_for("admin.admin_edit_product", product_id=product._id if product else "") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    showSuccessMessage('Ürün başarıyla güncellendi!');
+                    // 2 saniye sonra ürün listesine yönlendir
+                    setTimeout(() => {
+                        window.location.href = '{{ url_for("admin.admin_products") }}';
+                    }, 2000);
+                } else {
+                    alert('Ürün güncellenirken bir hata oluştu.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Bir hata oluştu: ' + error.message);
+            });
+        }
+    });
+
+    // Değişiklik algılama
+    ['name', 'description', 'price', 'stock'].forEach(fieldName => {
+        const field = document.getElementById(fieldName);
+        field.addEventListener('input', checkForChanges);
+    });
+});
+
+function addCharacterCounter(input, maxLength) {
+    const parent = input.parentElement;
+    const counter = document.createElement('div');
+    counter.className = 'character-count mt-1';
+    
+    function updateCounter() {
+        const current = input.value.length;
+        counter.textContent = `${current}/${maxLength}`;
+        
+        if (current > maxLength * 0.9) {
+            counter.className = 'character-count mt-1 danger';
+        } else if (current > maxLength * 0.8) {
+            counter.className = 'character-count mt-1 warning';
+        } else {
+            counter.className = 'character-count mt-1';
+        }
+    }
+    
+    input.addEventListener('input', updateCounter);
+    parent.appendChild(counter);
+    updateCounter();
+}
+
+function validateForm() {
+    const form = document.getElementById('editProductForm');
+    const formData = new FormData(form);
+    
+    // Zorunlu alanları kontrol et
+    const required = ['name', 'description', 'price', 'stock'];
+    for (let field of required) {
+        if (!formData.get(field) || formData.get(field).trim() === '') {
+            alert(`${field} alanı zorunludur.`);
+            document.getElementById(field).focus();
+            return false;
+        }
+    }
+    
+    // Fiyat kontrolü
+    const price = parseFloat(formData.get('price'));
+    if (isNaN(price) || price < 0) {
+        alert('Geçerli bir fiyat girin.');
+        document.getElementById('price').focus();
+        return false;
+    }
+    
+    // Stok kontrolü
+    const stock = parseInt(formData.get('stock'));
+    if (isNaN(stock) || stock < 0) {
+        alert('Geçerli bir stok adedi girin.');
+        document.getElementById('stock').focus();
+        return false;
+    }
+    
+    return true;
+}
+
+function checkForChanges() {
+    const currentValues = {
+        name: document.getElementById('name').value,
+        description: document.getElementById('description').value,
+        price: document.getElementById('price').value,
+        stock: document.getElementById('stock').value
+    };
+    
+    let hasChanges = false;
+    for (let key in originalValues) {
+        if (originalValues[key] !== currentValues[key]) {
+            hasChanges = true;
+            break;
+        }
+    }
+    
+    // Submit butonu metnini güncelle
+    const submitBtn = document.querySelector('button[type="submit"]');
+    if (hasChanges) {
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Değişiklikleri Kaydet';
+        submitBtn.classList.remove('btn-secondary');
+        submitBtn.classList.add('btn-primary');
+    } else {
+        submitBtn.innerHTML = '<i class="fas fa-check"></i> Değişiklik Yok';
+        submitBtn.classList.remove('btn-primary');
+        submitBtn.classList.add('btn-secondary');
+    }
+}
+
+function resetChanges() {
+    if (confirm('Tüm değişiklikleri geri almak istediğinizden emin misiniz?')) {
+        document.getElementById('name').value = originalValues.name;
+        document.getElementById('description').value = originalValues.description;
+        document.getElementById('price').value = originalValues.price;
+        document.getElementById('stock').value = originalValues.stock;
+        
+        checkForChanges();
+        
+        // Karakter sayaçlarını güncelle
+        document.querySelectorAll('input, textarea').forEach(input => {
+            if (input.nextElementSibling && input.nextElementSibling.classList.contains('character-count')) {
+                const event = new Event('input');
+                input.dispatchEvent(event);
+            }
+        });
+    }
+}
+
+function showProductHistory() {
+    const modal = new bootstrap.Modal(document.getElementById('historyModal'));
+    modal.show();
+}
+
+function deleteProduct() {
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+function confirmDelete() {
+    const productId = '{{ product._id if product else "" }}';
+    
+    fetch(`/admin/products/delete/${productId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            showSuccessMessage('Ürün başarıyla silindi!');
+            setTimeout(() => {
+                window.location.href = '{{ url_for("admin.admin_products") }}';
+            }, 2000);
+        } else {
+            alert('Ürün silinirken bir hata oluştu.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ürün silinirken bir hata oluştu.');
+    });
+    
+    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+}
+
+function showSuccessMessage(message) {
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+    alert.style.top = '20px';
+    alert.style.right = '20px';
+    alert.style.zIndex = '9999';
+    alert.innerHTML = `
+        <i class="fas fa-check-circle"></i> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.remove();
+    }, 5000);
+}
+
+// Sayfa çıkarken değişiklik uyarısı
+window.addEventListener('beforeunload', function(e) {
+    const currentValues = {
+        name: document.getElementById('name').value,
+        description: document.getElementById('description').value,
+        price: document.getElementById('price').value,
+        stock: document.getElementById('stock').value
+    };
+    
+    let hasChanges = false;
+    for (let key in originalValues) {
+        if (originalValues[key] !== currentValues[key]) {
+            hasChanges = true;
+            break;
+        }
+    }
+    
+    if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = 'Kaydedilmemiş değişiklikleriniz var. Sayfadan çıkmak istediğinizden emin misiniz?';
+    }
+});
+</script>
+{% endblock %} 

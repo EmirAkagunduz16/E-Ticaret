@@ -1,0 +1,472 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Ürünler - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold text-dark">
+                    <i class="fas fa-box text-primary"></i> Ürün Yönetimi
+                </h1>
+                <p class="text-muted">Mağazanızdaki tüm ürünleri buradan yönetebilirsiniz</p>
+            </div>
+            <div>
+                <a href="{{ url_for('admin.admin_add_product') }}" class="btn btn-success btn-custom">
+                    <i class="fas fa-plus"></i> Yeni Ürün Ekle
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtreler -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-end">
+                    <div class="col-md-4">
+                        <label for="searchInput" class="form-label">Ürün Ara</label>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Ürün adı veya açıklama...">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="sortSelect" class="form-label">Sıralama</label>
+                        <select class="form-select" id="sortSelect">
+                            <option value="newest">En Yeni</option>
+                            <option value="oldest">En Eski</option>
+                            <option value="name_asc">İsim (A-Z)</option>
+                            <option value="name_desc">İsim (Z-A)</option>
+                            <option value="price_asc">Fiyat (Düşük-Yüksek)</option>
+                            <option value="price_desc">Fiyat (Yüksek-Düşük)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="stockFilter" class="form-label">Stok Durumu</label>
+                        <select class="form-select" id="stockFilter">
+                            <option value="all">Tümü</option>
+                            <option value="in_stock">Stokta Var</option>
+                            <option value="low_stock">Az Stok (≤10)</option>
+                            <option value="out_of_stock">Stok Yok</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                            <i class="fas fa-times"></i> Temizle
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ürün Listesi -->
+<div class="row">
+    <div class="col-12">
+        <div class="table-container">
+            {% if products %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> Ürün Listesi 
+                        <span class="badge bg-primary ms-2" id="productCount">{{ products|length }} ürün</span>
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary btn-sm active" onclick="setView('table')">
+                            <i class="fas fa-table"></i> Tablo
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setView('grid')">
+                            <i class="fas fa-th"></i> Kart
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tablo Görünümü -->
+                <div id="tableView">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="productsTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAll">
+                                        </div>
+                                    </th>
+                                    <th>Ürün</th>
+                                    <th>Fiyat</th>
+                                    <th>Stok</th>
+                                    <th>Durum</th>
+                                    <th>Eklenme Tarihi</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in products %}
+                                <tr data-product-id="{{ product._id }}">
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input product-checkbox" type="checkbox" value="{{ product._id }}">
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 me-3">
+                                                <div class="bg-light rounded" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                                    <i class="fas fa-box text-muted"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1">{{ product.name }}</h6>
+                                                <small class="text-muted">{{ product.description[:80] }}{% if product.description|length > 80 %}...{% endif %}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success fs-6">${{ "%.2f"|format(product.price) }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if product.stock > 10 %}primary{% elif product.stock > 0 %}warning{% else %}danger{% endif %}">
+                                            {{ product.stock }} adet
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if product.stock > 0 %}
+                                            <span class="badge bg-success">Aktif</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Stok Yok</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if product.created_at %}
+                                            <small>{{ product.created_at.strftime('%d.%m.%Y') }}</small><br>
+                                            <small class="text-muted">{{ product.created_at.strftime('%H:%M') }}</small>
+                                        {% else %}
+                                            <small class="text-muted">-</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-info" title="Görüntüle" onclick="viewProduct('{{ product._id }}')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <a href="{{ url_for('admin.admin_edit_product', product_id=product._id) }}" 
+                                               class="btn btn-outline-primary" title="Düzenle">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger" title="Sil" 
+                                                    onclick="deleteProduct('{{ product._id }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Kart Görünümü -->
+                <div id="gridView" style="display: none;">
+                    <div class="row" id="productGrid">
+                        {% for product in products %}
+                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4" data-product-id="{{ product._id }}">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="card-title">{{ product.name }}</h6>
+                                        <div class="form-check">
+                                            <input class="form-check-input product-checkbox" type="checkbox" value="{{ product._id }}">
+                                        </div>
+                                    </div>
+                                    
+                                    <p class="card-text text-muted small">{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
+                                    
+                                    <div class="mb-2">
+                                        <span class="badge bg-success me-2">${{ "%.2f"|format(product.price) }}</span>
+                                        <span class="badge bg-{% if product.stock > 10 %}primary{% elif product.stock > 0 %}warning{% else %}danger{% endif %}">
+                                            {{ product.stock }} adet
+                                        </span>
+                                    </div>
+                                    
+                                    {% if product.created_at %}
+                                        <small class="text-muted">{{ product.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                                    {% endif %}
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <div class="btn-group w-100" role="group">
+                                        <button type="button" class="btn btn-outline-info btn-sm" onclick="viewProduct('{{ product._id }}')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <a href="{{ url_for('admin.admin_edit_product', product_id=product._id) }}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteProduct('{{ product._id }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Toplu İşlemler -->
+                <div class="row mt-4" id="bulkActions" style="display: none;">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-info-circle"></i> <span id="selectedCount">0</span> ürün seçildi</span>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="bulkDelete()">
+                                        <i class="fas fa-trash"></i> Toplu Sil
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
+                                        <i class="fas fa-times"></i> Seçimi Temizle
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sayfalama -->
+                {% if products|length >= 10 %}
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <nav aria-label="Ürün sayfalama">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                                    <a class="page-link" href="?page={{ page - 1 if page > 1 else 1 }}">Önceki</a>
+                                </li>
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page }}</span>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page + 1 }}">Sonraki</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+                {% endif %}
+
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-box-open fa-4x text-muted mb-4"></i>
+                    <h4 class="text-muted">Henüz ürün eklenmemiş</h4>
+                    <p class="text-muted mb-4">İlk ürününüzü ekleyerek başlayın!</p>
+                    <a href="{{ url_for('admin.admin_add_product') }}" class="btn btn-success btn-custom">
+                        <i class="fas fa-plus"></i> İlk Ürünü Ekle
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Ürün Detay Modal -->
+<div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-box"></i> Ürün Detayları
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="productModalBody">
+                <div class="text-center">
+                    <i class="fas fa-circle-notch fa-spin"></i> Yükleniyor...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentView = 'table';
+
+// Görünüm değiştirme
+function setView(view) {
+    currentView = view;
+    
+    if (view === 'table') {
+        document.getElementById('tableView').style.display = 'block';
+        document.getElementById('gridView').style.display = 'none';
+        document.querySelector('[onclick="setView(\'table\')"]').classList.add('active');
+        document.querySelector('[onclick="setView(\'grid\')"]').classList.remove('active');
+    } else {
+        document.getElementById('tableView').style.display = 'none';
+        document.getElementById('gridView').style.display = 'block';
+        document.querySelector('[onclick="setView(\'grid\')"]').classList.add('active');
+        document.querySelector('[onclick="setView(\'table\')"]').classList.remove('active');
+    }
+}
+
+// Ürün görüntüleme
+function viewProduct(productId) {
+    const modal = new bootstrap.Modal(document.getElementById('productModal'));
+    const modalBody = document.getElementById('productModalBody');
+    
+    modalBody.innerHTML = '<div class="text-center"><i class="fas fa-circle-notch fa-spin"></i> Yükleniyor...</div>';
+    modal.show();
+    
+    fetch(`/admin/api/products/${productId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const product = data.product;
+                modalBody.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5>${product.name}</h5>
+                            <p class="text-muted">${product.description}</p>
+                            
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <strong>Fiyat:</strong> $${product.price.toFixed(2)}
+                                </div>
+                                <div class="col-sm-6">
+                                    <strong>Stok:</strong> ${product.stock} adet
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-2">
+                                <div class="col-sm-6">
+                                    <strong>Tedarikçi:</strong> ${product.supplier_id || '-'}
+                                </div>
+                                <div class="col-sm-6">
+                                    <strong>Eklenme:</strong> ${product.created_at ? new Date(product.created_at).toLocaleDateString('tr-TR') : '-'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                modalBody.innerHTML = '<div class="alert alert-danger">Ürün bilgileri yüklenemedi.</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            modalBody.innerHTML = '<div class="alert alert-danger">Bir hata oluştu.</div>';
+        });
+}
+
+// Ürün silme
+function deleteProduct(productId) {
+    if (confirm('Bu ürünü silmek istediğinizden emin misiniz?')) {
+        fetch(`/admin/products/delete/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Ürün silinirken bir hata oluştu.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ürün silinirken bir hata oluştu.');
+        });
+    }
+}
+
+// Checkbox işlemleri
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const productCheckboxes = document.querySelectorAll('.product-checkbox');
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    // Tümünü seç/seçmeyi kaldır
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            productCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateBulkActions();
+        });
+    }
+    
+    // Tekil checkbox değişikliklerini dinle
+    productCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateBulkActions);
+    });
+    
+    function updateBulkActions() {
+        const checkedBoxes = document.querySelectorAll('.product-checkbox:checked');
+        const count = checkedBoxes.length;
+        
+        if (count > 0) {
+            bulkActions.style.display = 'block';
+            selectedCount.textContent = count;
+        } else {
+            bulkActions.style.display = 'none';
+        }
+        
+        // Tümünü seç checkbox durumunu güncelle
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = count === productCheckboxes.length && count > 0;
+            selectAllCheckbox.indeterminate = count > 0 && count < productCheckboxes.length;
+        }
+    }
+});
+
+// Seçimi temizle
+function clearSelection() {
+    document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.getElementById('selectAll').checked = false;
+    document.getElementById('bulkActions').style.display = 'none';
+}
+
+// Toplu silme
+function bulkDelete() {
+    const checkedBoxes = document.querySelectorAll('.product-checkbox:checked');
+    const productIds = Array.from(checkedBoxes).map(checkbox => checkbox.value);
+    
+    if (productIds.length === 0) {
+        alert('Lütfen silinecek ürünleri seçin.');
+        return;
+    }
+    
+    if (confirm(`${productIds.length} ürünü silmek istediğinizden emin misiniz?`)) {
+        // Burada toplu silme işlemi yapılabilir
+        console.log('Silinecek ürünler:', productIds);
+        alert('Toplu silme özelliği geliştirme aşamasında...');
+    }
+}
+
+// Filtreler
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('sortSelect').value = 'newest';
+    document.getElementById('stockFilter').value = 'all';
+    filterProducts();
+}
+
+function filterProducts() {
+    // Filtreleme mantığı burada implement edilebilir
+    console.log('Filtreleme işlemi...');
+}
+
+// Arama
+document.getElementById('searchInput')?.addEventListener('input', function() {
+    // Arama mantığı burada implement edilebilir
+    console.log('Arama:', this.value);
+});
+</script>
+{% endblock %} 

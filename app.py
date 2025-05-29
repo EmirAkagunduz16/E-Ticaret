@@ -6,6 +6,8 @@ import sys
 import os
 import logging
 from datetime import timedelta
+import threading
+import subprocess
 # Replace the relative path with absolute path to project root
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from config.settings import Config
@@ -44,6 +46,27 @@ def configure_logging(app):
         os.makedirs(email_dir)
     
     app.logger.info("Loglama sistemi yapılandırıldı")
+
+def run_tests_automatically():
+    """Otomatik test çalıştırma fonksiyonu"""
+    try:
+        # Test komutunu çalıştır
+        result = subprocess.run([
+            sys.executable, 'run_tests.py', '--unit'
+        ], capture_output=True, text=True, timeout=120)
+        
+        if result.returncode == 0:
+            print("✅ Otomatik testler başarıyla tamamlandı!")
+            print(result.stdout)
+        else:
+            print("❌ Otomatik testlerde hatalar var:")
+            print(result.stderr)
+            print(result.stdout)
+            
+    except subprocess.TimeoutExpired:
+        print("⏰ Testler zaman aşımına uğradı")
+    except Exception as e:
+        print(f"🔥 Test çalıştırma hatası: {str(e)}")
 
 def create_app(config_class=Config):
     # Flask uygulamasını başlat
@@ -96,6 +119,7 @@ def create_app(config_class=Config):
     from routes.cart import cart_bp
     from routes.dev import dev_bp
     from routes.orders import orders_bp
+    from routes.admin import admin_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(profile_bp, url_prefix='/api')
@@ -103,6 +127,7 @@ def create_app(config_class=Config):
     app.register_blueprint(cart_bp, url_prefix='/api')
     app.register_blueprint(orders_bp, url_prefix='/api')
     app.register_blueprint(dev_bp, url_prefix='')
+    app.register_blueprint(admin_bp, url_prefix='')
     
     # Hata işleyicilerini kaydet
     from utils.error_handlers import register_error_handlers
@@ -186,6 +211,58 @@ def create_app(config_class=Config):
                 'error': f"Şablon hatası: {template_name}",
                 'message': str(e)
             }), 500
+    
+    # Admin API - Test çalıştırma endpoint'i
+    @app.route('/admin/api/run-tests', methods=['POST'])
+    def run_tests_api():
+        try:
+            # Test çalıştırma işlemini arka planda başlat
+            def run_background_tests():
+                try:
+                    result = subprocess.run([
+                        sys.executable, 'run_tests.py', '--unit'
+                    ], capture_output=True, text=True, timeout=60)
+                    return result
+                except Exception as e:
+                    return None
+            
+            # Arka planda test çalıştır (gerçek uygulamada queue kullanılmalı)
+            result = run_background_tests()
+            
+            if result and result.returncode == 0:
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Testler başarıyla tamamlandı',
+                    'output': result.stdout
+                })
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Testlerde hatalar var',
+                    'output': result.stderr if result else 'Test çalıştırılamadı'
+                })
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
+    
+    # Otomatik test çalıştırma (sadece geliştirme modunda ve TESTING=True değilse)
+    if not is_test_mode and app.debug and not os.environ.get('TESTING', 'False').lower() == 'true':
+        # Flask'ın restart etmesi nedeniyle testlerin iki kez çalışmasını önle
+        from werkzeug.serving import is_running_from_reloader
+        if not is_running_from_reloader():
+            # Uygulamanın başlamasından 5 saniye sonra testleri çalıştır
+            def delayed_test_run():
+                import time
+                time.sleep(5)
+                run_tests_automatically()
+            
+            test_thread = threading.Thread(target=delayed_test_run)
+            test_thread.daemon = True
+            test_thread.start()
+            
+            app.logger.info("Otomatik test çalıştırma işlemi başlatıldı")
     
     return app
 

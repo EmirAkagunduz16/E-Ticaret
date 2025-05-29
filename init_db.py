@@ -1,8 +1,7 @@
 from app import create_app
 from config.mongodb_db import get_db
 from models.user import User
-
-from datetime import datetime
+from datetime import datetime, timezone
 from utils.db_init import init_tables
 
 def init_db():
@@ -28,7 +27,13 @@ def init_db():
         
         # Eğer ürün yoksa örnek ürünleri oluştur
         db = get_db()
-        products_collection = db['products']
+        if db is None:
+            print("MongoDB bağlantısı kurulamadı!")
+            return
+        
+        products_collection = db.products
+        orders_collection = db.orders
+        carts_collection = db.carts
         
         if products_collection.count_documents({}) == 0:
             admin = User.find_by_email('admin@example.com')
@@ -41,7 +46,7 @@ def init_db():
                     'description': 'High performance laptop with 16GB RAM and SSD',
                     'price': 999.99,
                     'stock': 10,
-                    'created_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc),
                     'is_deleted': False
                 },
                 {
@@ -50,7 +55,7 @@ def init_db():
                     'description': 'Latest smartphone with high-resolution camera',
                     'price': 699.99,
                     'stock': 20,
-                    'created_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc),
                     'is_deleted': False
                 },
                 {
@@ -59,7 +64,7 @@ def init_db():
                     'description': 'Noise-cancelling wireless headphones',
                     'price': 199.99,
                     'stock': 30,
-                    'created_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc),
                     'is_deleted': False
                 },
                 {
@@ -68,7 +73,7 @@ def init_db():
                     'description': 'Fitness tracking smartwatch with heart rate monitor',
                     'price': 249.99,
                     'stock': 15,
-                    'created_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc),
                     'is_deleted': False
                 },
                 {
@@ -77,7 +82,7 @@ def init_db():
                     'description': '10-inch tablet with high-resolution display',
                     'price': 399.99,
                     'stock': 12,
-                    'created_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc),
                     'is_deleted': False
                 },
                 {
@@ -86,7 +91,7 @@ def init_db():
                     'description': 'Ergonomic wireless mouse with long battery life',
                     'price': 49.99,
                     'stock': 40,
-                    'created_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc),
                     'is_deleted': False
                 },
                 {
@@ -95,7 +100,7 @@ def init_db():
                     'description': 'RGB backlit mechanical gaming keyboard',
                     'price': 129.99,
                     'stock': 25,
-                    'created_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc),
                     'is_deleted': False
                 },
                 {
@@ -104,7 +109,7 @@ def init_db():
                     'description': '1TB portable SSD with USB-C connection',
                     'price': 159.99,
                     'stock': 18,
-                    'created_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc),
                     'is_deleted': False
                 },
                 {
@@ -113,7 +118,7 @@ def init_db():
                     'description': 'Next-gen gaming console with 1TB storage',
                     'price': 499.99,
                     'stock': 8,
-                    'created_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc),
                     'is_deleted': False
                 },
                 {
@@ -122,7 +127,7 @@ def init_db():
                     'description': 'Waterproof portable Bluetooth speaker',
                     'price': 89.99,
                     'stock': 22,
-                    'created_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc),
                     'is_deleted': False
                 }
             ]

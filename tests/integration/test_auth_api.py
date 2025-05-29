@@ -37,11 +37,9 @@ class TestAuthAPI(unittest.TestCase):
         # Mock User.create
         mock_user.create.return_value = 1
         
-        # Test verisi
+        # Test verisi - yeni format (name kullanıyor)
         data = {
-            'username': 'testuser',
-            'first_name': 'Test',
-            'last_name': 'User',
+            'name': 'Test User',
             'email': 'test@example.com',
             'password': 'Password123!'
         }
@@ -56,18 +54,16 @@ class TestAuthAPI(unittest.TestCase):
         # Assert
         self.assertEqual(response.status_code, 201)
         response_data = json.loads(response.data)
-        self.assertEqual(response_data['message'], 'Kullanıcı başarıyla kaydedildi')
+        self.assertEqual(response_data['message'], 'User registered successfully')
     
     @patch('routes.auth.User')
     def test_register_existing_email(self, mock_user):
         # Mock User.find_by_email - e-posta zaten var
         mock_user.find_by_email.return_value = {'id': 1, 'email': 'test@example.com'}
         
-        # Test verisi
+        # Test verisi - yeni format (name kullanıyor)
         data = {
-            'username': 'testuser',
-            'first_name': 'Test',
-            'last_name': 'User',
+            'name': 'Test User',
             'email': 'test@example.com',
             'password': 'Password123!'
         }
@@ -82,7 +78,7 @@ class TestAuthAPI(unittest.TestCase):
         # Assert
         self.assertEqual(response.status_code, 400)
         response_data = json.loads(response.data)
-        self.assertEqual(response_data['message'], 'Bu e-posta adresi zaten kullanılıyor')
+        self.assertEqual(response_data['message'], 'Email already in use')
     
     @patch('routes.auth.User')
     @patch('routes.auth.create_access_token')

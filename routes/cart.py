@@ -3,7 +3,7 @@ from config.mongodb_db import get_db
 from models.user import User
 from utils.helpers import send_email
 from decorators.auth import customer_required
-from datetime import datetime
+from datetime import datetime, timezone
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from bson import ObjectId
 import traceback
@@ -68,7 +68,7 @@ def add_to_cart():
                 'quantity': quantity,
                 'price': product['price'],
                 'image_url': product.get('image_url', ''),
-                'created_at': datetime.utcnow(),
+                'created_at': datetime.now(timezone.utc),
                 'is_checked_out': False
             }
             cart_collection.insert_one(cart_item)
@@ -172,7 +172,7 @@ def checkout_cart():
     
     # Sipariş ID'si oluştur
     order_id = str(ObjectId())
-    order_date = datetime.utcnow()
+    order_date = datetime.now(timezone.utc)
     
     # Sipariş ID'siyle sepet öğelerini işaretle
     cart_collection.update_many(

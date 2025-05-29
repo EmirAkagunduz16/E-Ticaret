@@ -5,7 +5,7 @@ from models.user import User
 from models.product import Product
 from utils.helpers import send_email
 from decorators.auth import supplier_required
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 import traceback
 
@@ -79,7 +79,7 @@ def add_product():
             'description': data['description'],
             'price': float(data['price']),
             'stock': int(data['stock']),
-            'created_at': datetime.utcnow(),
+            'created_at': datetime.now(timezone.utc),
             'is_deleted': False
         }
         
@@ -306,7 +306,7 @@ def get_featured_products():
             'description': 'This is a sample product for demonstration',
             'price': 99.99,
             'stock': 10,
-            'created_at': datetime.utcnow(),
+            'created_at': datetime.now(timezone.utc),
             'is_deleted': False
         }
         product_id = products_collection.insert_one(sample_product).inserted_id

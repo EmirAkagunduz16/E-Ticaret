@@ -1,7 +1,7 @@
 from config.mongodb_db import get_db
 from config.mysql_db import get_mysql_connection
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 
 class Product:
     @staticmethod
@@ -16,7 +16,7 @@ class Product:
             'description': description,
             'price': float(price),
             'stock': int(stock),
-            'created_at': datetime.utcnow(),
+            'created_at': datetime.now(timezone.utc),
             'is_deleted': False
         }
         

@@ -1,7 +1,7 @@
 from config.mongodb_db import get_db
 from config.mysql_db import get_mysql_connection
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 
 class Cart:
     @staticmethod
@@ -36,7 +36,7 @@ class Cart:
                 'product_id': product_id,
                 'quantity': quantity,
                 'price': float(price),
-                'added_at': datetime.utcnow(),
+                'added_at': datetime.now(timezone.utc),
                 'is_checked_out': False,
                 'checked_out_at': None
             }
@@ -141,7 +141,7 @@ class Cart:
             {
                 '$set': {
                     'is_checked_out': True,
-                    'checked_out_at': datetime.utcnow()
+                    'checked_out_at': datetime.now(timezone.utc)
                 }
             }
         )

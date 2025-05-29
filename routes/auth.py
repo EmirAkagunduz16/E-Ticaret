@@ -5,7 +5,7 @@ from config.mysql_db import get_mysql_connection
 from models.user import User
 from utils.helpers import send_email, hash_password, check_password, send_reset_email
 from config.settings import Config
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import re
 
@@ -26,8 +26,8 @@ def register():
     if not data:
         return jsonify({'message': 'No data provided'}), 400
     
-    # Gerekli alanları kontrol et
-    required_fields = ['username', 'email', 'password', 'first_name', 'last_name']
+    # Gerekli alanları kontrol et - username'i kaldırdık
+    required_fields = ['name', 'email', 'password']
     for field in required_fields:
         if field not in data:
             return jsonify({'message': f'Missing required field: {field}'}), 400
@@ -37,22 +37,46 @@ def register():
     if not re.match(email_pattern, data['email']):
         return jsonify({'message': 'Invalid email format'}), 400
     
-    # Kullanıcı adı veya e-posta zaten kullanılıyor mu kontrol et
+    # E-posta zaten kullanılıyor mu kontrol et
     existing_user = User.find_by_email(data['email'])
     if existing_user:
         return jsonify({'message': 'Email already in use'}), 400
     
+    # İsmi böl
+    full_name = data['name'].strip()
+    name_parts = full_name.split(' ', 1)  # İlk boşlukta böl
+    first_name = name_parts[0]
+    last_name = name_parts[1] if len(name_parts) > 1 else ''
+    
+    # Email'den username oluştur
+    username = data['email'].split('@')[0]
+    
     # Yeni kullanıcıyı oluştur
     user_id = User.create({
-        'username': data['username'],
+        'username': username,
         'email': data['email'],
         'password': data['password'],
-        'first_name': data['first_name'],
-        'last_name': data['last_name'],
-        'role': 'customer'  # Varsayılan rol
+        'first_name': first_name,
+        'last_name': last_name,
+        'role': data.get('account_type', 'customer')  # Frontend'den gelen account_type kullan
     })
     
-    return jsonify({'message': 'User registered successfully', 'user_id': user_id}), 201
+    if user_id:
+        # JWT token oluştur
+        access_token = create_access_token(identity={'id': user_id, 'role': data.get('account_type', 'customer')})
+        return jsonify({
+            'message': 'User registered successfully',
+            'token': access_token,
+            'user': {
+                'id': user_id,
+                'username': username,
+                'email': data['email'],
+                'name': full_name,
+                'role': data.get('account_type', 'customer')
+            }
+        }), 201
+    
+    return jsonify({'message': 'Registration failed'}), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -91,7 +115,7 @@ def forgot_password():
                     password_reset_tokens.insert_one({
                         'email': data['email'],
                         'token': token,
-                        'expires': datetime.utcnow() + timedelta(hours=24)
+                        'expires': datetime.now(timezone.utc) + timedelta(hours=24)
                     })
                 except Exception as e:
                     current_app.logger.error(f"Error inserting token into MongoDB: {str(e)}")
@@ -115,14 +139,14 @@ def forgot_password():
             if not os.path.exists(reset_tokens_dir):
                 os.makedirs(reset_tokens_dir)
                 
-            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            timestamp = datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')
             token_file = os.path.join(reset_tokens_dir, f"{timestamp}_{data['email'].replace('@', '_at_')}_token.txt")
             
             with open(token_file, 'w', encoding='utf-8') as f:
                 f.write(f"Email: {data['email']}\n")
                 f.write(f"Token: {token}\n")
                 f.write(f"Reset Link: {reset_link}\n")
-                f.write(f"Expires: {datetime.utcnow() + timedelta(hours=24)}\n")
+                f.write(f"Expires: {datetime.now(timezone.utc) + timedelta(hours=24)}\n")
             
             # Sender email parametresini al (varsa)
             sender_email = data.get('sender_email', None)
@@ -166,7 +190,7 @@ def reset_password():
         try:
             mongo_token = password_reset_tokens.find_one({
                 'token': token,
-                'expires': {'$gt': datetime.utcnow()}
+                'expires': {'$gt': datetime.now(timezone.utc)}
             })
             
             if mongo_token:
@@ -216,7 +240,7 @@ def verify_token():
         try:
             mongo_token = password_reset_tokens.find_one({
                 'token': token,
-                'expires': {'$gt': datetime.utcnow()}
+                'expires': {'$gt': datetime.now(timezone.utc)}
             })
             
             if mongo_token:
@@ -233,7 +257,7 @@ def verify_token():
     WHERE reset_token = %s AND reset_token_expires > %s
     """
     
-    cursor.execute(query, (token, datetime.now()))
+    cursor.execute(query, (token, datetime.now(timezone.utc)))
     user = cursor.fetchone()
     
     cursor.close()

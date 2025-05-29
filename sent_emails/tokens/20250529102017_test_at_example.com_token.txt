@@ -1,0 +1,4 @@
+Email: test@example.com
+Token: reset-token-123
+Reset Link: http://localhost:5000/reset-password?token=reset-token-123
+Expires: 2025-05-30 10:20:17.336013+00:00

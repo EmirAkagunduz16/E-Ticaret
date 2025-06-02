@@ -74,31 +74,46 @@ class Cart:
         }))
         
         # Get product details for each item
+        products_collection = db.products
         result = []
+        
         for item in cart_items:
             # Convert MongoDB ObjectId to string
             item_id = str(item['_id'])
             
-            # Get product details from MySQL
-            conn = get_mysql_connection()
-            cursor = conn.cursor(dictionary=True)
-            
-            query = "SELECT * FROM products WHERE id = %s"
-            cursor.execute(query, (item['product_id'],))
-            
-            product = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            
-            if product:
-                result.append({
-                    'id': item_id,
-                    'product_id': item['product_id'],
-                    'quantity': item['quantity'],
-                    'price': float(item['price']),
-                    'product_name': product['name'],
-                    'product_image': product['image']
+            # Get product details from MongoDB
+            try:
+                product = products_collection.find_one({
+                    '_id': ObjectId(item['product_id']),
+                    'is_deleted': False
                 })
+                
+                if product:
+                    result.append({
+                        'id': item_id,
+                        'product_id': str(product['_id']),
+                        'quantity': item['quantity'],
+                        'price': float(item['price']),
+                        'product_name': product['name'],
+                        'product_image': product.get('image', '/static/images/default-product.jpg')
+                    })
+            except Exception as e:
+                # Eğer ObjectId dönüştürme başarısız olursa, item['product_id'] zaten string olabilir
+                # Bu durumda eski mantığı kullan ama MongoDB'den ara
+                product = products_collection.find_one({
+                    'name': {'$exists': True},  # Basit bir kontrol
+                    'is_deleted': False
+                })
+                
+                if product and str(product['_id']) == str(item['product_id']):
+                    result.append({
+                        'id': item_id,
+                        'product_id': item['product_id'],
+                        'quantity': item['quantity'],
+                        'price': float(item['price']),
+                        'product_name': product['name'],
+                        'product_image': product.get('image', '/static/images/default-product.jpg')
+                    })
         
         return result
     

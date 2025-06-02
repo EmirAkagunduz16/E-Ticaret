@@ -50,18 +50,39 @@ def configure_logging(app):
 def run_tests_automatically():
     """Otomatik test çalıştırma fonksiyonu"""
     try:
-        # Test komutunu çalıştır
-        result = subprocess.run([
-            sys.executable, 'run_tests.py', '--unit'
-        ], capture_output=True, text=True, timeout=120)
+        print("\n" + "="*60)
+        print("🧪 OTOMATIK TESTLER BAŞLATILIYOR...")
+        print("="*60)
         
-        if result.returncode == 0:
-            print("✅ Otomatik testler başarıyla tamamlandı!")
-            print(result.stdout)
+        # Unit testlerini çalıştır
+        print("\n📋 UNIT TESTLER ÇALIŞIYOR...")
+        print("-" * 40)
+        unit_result = subprocess.run([
+            sys.executable, 'run_tests.py', '--unit'
+        ], timeout=120)
+        
+        # Integration testlerini çalıştır
+        print("\n🔗 INTEGRATION TESTLER ÇALIŞIYOR...")
+        print("-" * 40)
+        integration_result = subprocess.run([
+            sys.executable, 'run_tests.py', '--integration'
+        ], timeout=180)
+        
+        # Sonuçları değerlendir
+        unit_success = unit_result.returncode == 0
+        integration_success = integration_result.returncode == 0
+        
+        print("\n" + "="*60)
+        print("📊 TEST SONUÇLARI ÖZETI:")
+        print("="*60)
+        print(f"Unit Testler: {'✅ BAŞARILI' if unit_success else '❌ BAŞARISIZ'}")
+        print(f"Integration Testler: {'✅ BAŞARILI' if integration_success else '❌ BAŞARISIZ'}")
+        
+        if unit_success and integration_success:
+            print("\n🎉 TÜM TESTLER BAŞARIYLA TAMAMLANDI!")
         else:
-            print("❌ Otomatik testlerde hatalar var:")
-            print(result.stderr)
-            print(result.stdout)
+            print("\n⚠️  BAZI TESTLERDE HATALAR VAR - DETAYLAR YUKARIDA")
+      
             
     except subprocess.TimeoutExpired:
         print("⏰ Testler zaman aşımına uğradı")

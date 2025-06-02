@@ -5,11 +5,9 @@ Cart API Integration Tests
 Bu dosya sepet (cart) API endpoint'lerinin entegrasyon testlerini içerir.
 """
 
-import pytest
 import json
 import os
 import sys
-from datetime import datetime
 from unittest.mock import patch, MagicMock
 from bson import ObjectId
 
